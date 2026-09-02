@@ -247,7 +247,7 @@ export default function AnimalDetail() {
                     </Link>
                   ) : (
                     <div className="mt-4 space-y-3">
-                      <Link to="/login" className="btn-primary w-full justify-center">
+                      <Link to="/" className="btn-primary w-full justify-center">
                         Sign In to Apply
                       </Link>
                       <p className="text-center text-sm text-forest-500 dark:text-forest-400">

@@ -42,7 +42,7 @@ export default function AdoptionForm() {
     try {
       await API.post('/adoptions', { animal_id: id, ...form });
       setSuccess(true);
-      setTimeout(() => nav('/profile'), 2000);
+      setTimeout(() => nav('/home/profile'), 2000);
     } catch (e) {
       setError(e.response?.data?.error || 'Unable to submit the request. Please try again.');
     } finally {

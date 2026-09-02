@@ -15,6 +15,7 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   dateStrings: true, // return DATE/DATETIME as strings, matching the old sqlite string-based reads the routes expect
+  decimalNumbers: true, // return DECIMAL columns as JS numbers, not strings
 });
 
 // ---------------------------------------------------------------------------

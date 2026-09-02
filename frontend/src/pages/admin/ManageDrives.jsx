@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import API from '../../api/api';
 
 const empty = { title: '', description: '', target_amount: '', deadline: '', existing_photo: '' };
@@ -273,9 +272,6 @@ export default function ManageDrives() {
                     )}
 
                     <div className="flex flex-wrap gap-2">
-                      <Link to={`/donations/${drive.id}`} target="_blank" className="btn-ghost btn-sm px-3 py-1.5 text-xs">
-                        View
-                      </Link>
                       <button onClick={() => startEdit(drive)} className="btn-ghost btn-sm px-3 py-1.5 text-xs">
                         Edit
                       </button>

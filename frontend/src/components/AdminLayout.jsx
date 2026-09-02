@@ -34,7 +34,7 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     await logout();
-    nav('/admin/login');
+    nav('/home');
   };
 
   const Sidebar = ({ mobile = false }) => (
@@ -124,7 +124,7 @@ export default function AdminLayout() {
             <button onClick={toggle} className="btn-icon" aria-label="Toggle color theme">
               {dark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
             </button>
-            <NavLink to="/" className="btn-ghost btn-sm">
+            <NavLink to="/home" className="btn-ghost btn-sm">
               <ArrowLeftIcon className="h-4 w-4" />
               Public Site
             </NavLink>

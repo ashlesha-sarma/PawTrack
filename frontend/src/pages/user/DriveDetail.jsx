@@ -611,7 +611,7 @@ export default function DriveDetail() {
                   <>
                     <button
                       onClick={() => {
-                        if (!user) { nav('/login'); return; }
+                        if (!user) { nav('/'); return; }
                         setShowModal(true);
                       }}
                       className="btn-donate w-full text-base py-4 glow-terra"
@@ -621,7 +621,7 @@ export default function DriveDetail() {
                     </button>
                     {!user && (
                       <p className="text-center text-xs text-forest-500 dark:text-forest-400">
-                        <Link to="/login" className="font-medium text-terra-600 hover:underline dark:text-terra-300">Sign in</Link>
+                        <Link to="/" className="font-medium text-terra-600 hover:underline dark:text-terra-300">Sign in</Link>
                         {' '}or{' '}
                         <Link to="/register" className="font-medium text-terra-600 hover:underline dark:text-terra-300">register</Link>
                         {' '}to contribute.

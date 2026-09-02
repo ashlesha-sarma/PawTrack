@@ -13,6 +13,7 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -57,20 +58,29 @@ export default function AdminLogin() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@campuspaws.test"
+                placeholder="you@example.com"
                 className="input"
               />
             </div>
             <div>
               <label className="label">Password</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="input"
-              />
+              <div className="relative">
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="input pr-16"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((value) => !value)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-forest-500 hover:text-forest-700 dark:text-forest-400 dark:hover:text-forest-200"
+                >
+                  {showPw ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -92,9 +102,9 @@ export default function AdminLogin() {
             </div>
 
             <p className="mt-8 text-center border-t border-cream-200 pt-6 dark:border-forest-800">
-              <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-forest-500 hover:text-terra-600 transition-colors dark:text-forest-400 dark:hover:text-terra-300">
+              <Link to="/home" className="inline-flex items-center gap-2 text-sm font-medium text-forest-500 hover:text-terra-600 transition-colors dark:text-forest-400 dark:hover:text-terra-300">
                 <ArrowLeftIcon className="h-4 w-4" />
-                Return to public site
+                Return to home
               </Link>
             </p>
         </div>

@@ -128,7 +128,7 @@ export default function Landing() {
             <div className="space-y-4">
               <div className="card overflow-hidden">
                 <img
-                  src="/uploads/milo.jpg"
+                  src="/assets/images/landing-page-photo.jpg"
                   alt="Animal waiting for adoption"
                   className="h-[320px] w-full object-cover"
                   onError={(e) => {

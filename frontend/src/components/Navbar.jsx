@@ -140,7 +140,7 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="hidden items-center gap-2 md:flex">
-                <Link to="/login" className="btn-ghost btn-sm">
+                <Link to="/" className="btn-ghost btn-sm">
                   Sign In
                 </Link>
                 <Link to="/register" className="btn-primary btn-sm">
@@ -177,7 +177,7 @@ export default function Navbar() {
 
               {!user && (
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-ghost btn-sm justify-center">
+                  <Link to="/" onClick={() => setMenuOpen(false)} className="btn-ghost btn-sm justify-center">
                     Sign In
                   </Link>
                   <Link to="/register" onClick={() => setMenuOpen(false)} className="btn-primary btn-sm justify-center">

@@ -13,6 +13,14 @@ const emptyForm = {
   existing_image_path: '',
 };
 
+const STATUS_LABELS = {
+  reported: 'Reported',
+  under_care: 'Under Care',
+  fostered: 'Fostered',
+  available: 'Available',
+  adopted: 'Adopted',
+};
+
 // ─── Per-animal history panel (sightings / medical / foster) ──────────────
 // Added as a small collapsible section inside the existing table row — no
 // changes to the table structure itself, no new page, no layout redesign.
@@ -426,7 +434,7 @@ export default function ManageAnimals() {
       {options ? (
         <select className="input" value={form[k]} onChange={set(k)}>
           {options.map((option) => (
-            <option key={option}>{option}</option>
+            <option key={option} value={option}>{STATUS_LABELS[option] || option}</option>
           ))}
         </select>
       ) : type === 'textarea' ? (
@@ -454,7 +462,7 @@ export default function ManageAnimals() {
           <h2 className="mb-5 text-lg text-forest-950 dark:text-cream-100">{editId ? 'Edit animal' : 'Add a new animal'}</h2>
           <form onSubmit={submit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label="Name *" k="name" />
-            <Field label="Species" k="species" options={['dog', 'cat']} />
+            <Field label="Species" k="species" options={['dog', 'cat', 'others']} />
             <Field label="Breed" k="breed" />
             <Field label="Age (years)" k="age" type="number" />
             <Field label="Gender" k="gender" options={['Male', 'Female']} />
@@ -578,7 +586,7 @@ export default function ManageAnimals() {
                                 : 'badge-red'
                         }`}
                       >
-                        {animal.current_status}
+                        {STATUS_LABELS[animal.current_status] || animal.current_status}
                       </span>
                     </td>
                     <td className="py-3">

@@ -4,7 +4,7 @@ import AnimalCard from '../../components/AnimalCard';
 import { SkeletonCard } from '../../components/Skeleton';
 import { FilterIcon, SearchIcon } from '../../components/Icons';
 
-const SPECIES = ['All', 'Dog', 'Cat'];
+const SPECIES = ['All', 'Dog', 'Cat', 'Others'];
 const STATUSES = ['All', 'Up for adoption', 'Adopted', 'Cannot be adopted'];
 const HEALTH = ['All', 'Healthy', 'Needs treatment'];
 const GENDERS = ['All', 'Male', 'Female'];

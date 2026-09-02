@@ -83,11 +83,11 @@ export default function Profile() {
                     Admin Panel
                   </Link>
                 )}
-                <Link to="/animals" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-forest-700 hover:bg-cream-50 dark:text-forest-300 dark:hover:bg-forest-800">
+                <Link to="/home/animals" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-forest-700 hover:bg-cream-50 dark:text-forest-300 dark:hover:bg-forest-800">
                   <PawIcon className="h-4 w-4" />
                   Animal Listings
                 </Link>
-                <Link to="/donations" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-forest-700 hover:bg-cream-50 dark:text-forest-300 dark:hover:bg-forest-800">
+                <Link to="/home/donations" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-forest-700 hover:bg-cream-50 dark:text-forest-300 dark:hover:bg-forest-800">
                   <HeartIcon className="h-4 w-4" />
                   Donation Drives
                 </Link>
@@ -120,7 +120,7 @@ export default function Profile() {
               ) : requests.length === 0 ? (
                 <div className="rounded-xl border border-cream-200 bg-cream-50 p-8 text-center dark:border-forest-800 dark:bg-forest-800/70">
                   <p className="text-sm text-forest-500 dark:text-forest-400">No adoption applications have been submitted yet.</p>
-                  <Link to="/animals" className="btn-primary btn-sm mt-4 inline-flex">
+                  <Link to="/home/animals" className="btn-primary btn-sm mt-4 inline-flex">
                     View Animals
                   </Link>
                 </div>
@@ -173,7 +173,7 @@ export default function Profile() {
               ) : donations.length === 0 ? (
                 <div className="rounded-xl border border-cream-200 bg-cream-50 p-8 text-center dark:border-forest-800 dark:bg-forest-800/70">
                   <p className="text-sm text-forest-500 dark:text-forest-400">No donations have been recorded on this account yet.</p>
-                  <Link to="/donations" className="btn-primary btn-sm mt-4 inline-flex">
+                  <Link to="/home/donations" className="btn-primary btn-sm mt-4 inline-flex">
                     View Campaigns
                   </Link>
                 </div>
