@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import API from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
+import { getImageUrl } from '../../utils/imageUrl';
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
@@ -465,10 +466,13 @@ export default function DriveDetail() {
               <div className="overflow-hidden rounded-2xl border border-cream-200 bg-white dark:border-forest-800 dark:bg-forest-900 shadow-card">
                 {drive.photo ? (
                   <img
-                    src={drive.photo}
+                    src={getImageUrl(drive.photo)}
                     alt={drive.title}
                     className="aspect-video w-full object-cover"
-                    onError={(e) => { e.target.style.display = 'none'; }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/placeholder.png';
+                    }}
                   />
                 ) : (
                   <div

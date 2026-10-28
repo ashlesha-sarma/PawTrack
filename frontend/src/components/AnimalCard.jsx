@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { getImageUrl } from '../utils/imageUrl';
 import {
   CatIcon,
   DogIcon,
@@ -32,11 +33,12 @@ export default function AnimalCard({ animal }) {
     <article className="card-hover group overflow-hidden">
       <div className="relative h-56 overflow-hidden bg-cream-200 dark:bg-forest-800">
         <img
-          src={animal.image_path}
+          src={getImageUrl(animal.image_path)}
           alt={animal.name}
           className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
           onError={(e) => {
-            e.target.src = '/uploads/placeholder.png';
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/placeholder.png';
           }}
         />
 

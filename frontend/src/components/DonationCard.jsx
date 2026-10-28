@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClockIcon, HeartIcon } from './Icons';
+import { getImageUrl } from '../utils/imageUrl';
 
 function MiniProgressBar({ pct }) {
   const [display, setDisplay] = useState(0);
@@ -51,10 +52,13 @@ export default function DonationCard({ drive }) {
       <div className="relative h-48 overflow-hidden bg-cream-100 dark:bg-forest-800">
         {drive.photo ? (
           <img
-            src={drive.photo}
+            src={getImageUrl(drive.photo)}
             alt={drive.title}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            onError={(e) => { e.target.style.display = 'none'; }}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/placeholder.png';
+            }}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">

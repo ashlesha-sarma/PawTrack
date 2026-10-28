@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import API from '../../api/api';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const empty = { title: '', description: '', target_amount: '', deadline: '', existing_photo: '' };
 
@@ -178,6 +179,22 @@ export default function ManageDrives() {
                 className="input cursor-pointer py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-terra-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-terra-700 hover:file:bg-terra-200"
               />
               {form.existing_photo && <p className="mt-1 text-xs text-forest-400">Current: {form.existing_photo}</p>}
+              {(photo || form.existing_photo) && (
+                <div className="mt-2 flex items-center gap-3">
+                  <img
+                    src={photo ? URL.createObjectURL(photo) : getImageUrl(form.existing_photo)}
+                    alt="Cover preview"
+                    className="h-14 w-14 rounded-lg object-cover border border-cream-300 dark:border-forest-700"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/placeholder.png';
+                    }}
+                  />
+                  <span className="text-xs text-forest-500 dark:text-forest-400">
+                    {photo ? photo.name : form.existing_photo}
+                  </span>
+                </div>
+              )}
             </div>
 
             {msg.text && (
@@ -225,11 +242,12 @@ export default function ManageDrives() {
                     <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl bg-cream-200 dark:bg-forest-800">
                       {drive.photo ? (
                         <img
-                          src={drive.photo}
+                          src={getImageUrl(drive.photo)}
                           alt={drive.title}
                           className="h-full w-full object-cover"
                           onError={(e) => {
-                            e.target.style.display = 'none';
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = '/placeholder.png';
                           }}
                         />
                       ) : (

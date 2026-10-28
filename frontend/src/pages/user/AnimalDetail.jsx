@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import API from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
+import { getImageUrl } from '../../utils/imageUrl';
 import {
   ArrowLeftIcon,
   CalendarIcon,
@@ -120,11 +121,12 @@ export default function AnimalDetail() {
           <div className="space-y-5 lg:col-span-3">
             <div className="overflow-hidden rounded-2xl border border-cream-300 bg-white dark:border-forest-800 dark:bg-forest-900">
               <img
-                src={animal.image_path}
+                src={getImageUrl(animal.image_path)}
                 alt={animal.name}
                 className="h-80 w-full object-cover md:h-[460px]"
                 onError={(e) => {
-                  e.target.src = '/uploads/placeholder.png';
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/placeholder.png';
                 }}
               />
               <div className="space-y-4 border-t border-cream-200 p-6 dark:border-forest-800">

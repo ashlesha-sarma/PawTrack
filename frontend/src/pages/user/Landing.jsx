@@ -132,7 +132,8 @@ export default function Landing() {
                   alt="Animal waiting for adoption"
                   className="h-[320px] w-full object-cover"
                   onError={(e) => {
-                    e.target.src = '/uploads/placeholder.png';
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/placeholder.png';
                   }}
                 />
                 <div className="border-t border-cream-200 p-5 dark:border-forest-800">

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import API from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeftIcon, CheckCircleIcon, HeartIcon, ShieldCheckIcon, SyringeIcon } from '../../components/Icons';
+import { getImageUrl } from '../../utils/imageUrl';
 
 export default function AdoptionForm() {
   const { id } = useParams();
@@ -94,11 +95,12 @@ export default function AdoptionForm() {
             <aside className="md:sticky md:top-24 md:self-start">
               <div className="card overflow-hidden">
                 <img
-                  src={animal.image_path}
+                  src={getImageUrl(animal.image_path)}
                   alt={animal.name}
                   className="h-56 w-full object-cover"
                   onError={(e) => {
-                    e.target.src = '/uploads/placeholder.png';
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/placeholder.png';
                   }}
                 />
                 <div className="space-y-4 p-5">

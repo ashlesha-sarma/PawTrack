@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import API from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
+import { getImageUrl } from '../../utils/imageUrl';
 import {
   ClipboardIcon,
   HeartIcon,
@@ -130,11 +131,12 @@ export default function Profile() {
                     <div key={request.request_id} className="surface-muted flex items-center gap-4 rounded-xl p-3.5">
                       {request.image_path && (
                         <img
-                          src={request.image_path}
+                          src={getImageUrl(request.image_path)}
                           alt={request.animal_name}
                           className="h-12 w-12 flex-shrink-0 rounded-xl object-cover"
                           onError={(e) => {
-                            e.target.style.display = 'none';
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = '/placeholder.png';
                           }}
                         />
                       )}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import API from '../../api/api';
 import { SearchIcon } from '../../components/Icons';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const emptyForm = {
   name: '',
@@ -493,6 +494,22 @@ export default function ManageAnimals() {
                 className="input cursor-pointer py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-terra-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-terra-700 hover:file:bg-terra-200"
               />
               {form.existing_image_path && <p className="mt-1 text-xs text-forest-400">Current: {form.existing_image_path}</p>}
+              {(image || form.existing_image_path) && (
+                <div className="mt-2 flex items-center gap-3">
+                  <img
+                    src={image ? URL.createObjectURL(image) : getImageUrl(form.existing_image_path)}
+                    alt="Preview"
+                    className="h-14 w-14 rounded-lg object-cover border border-cream-300 dark:border-forest-700"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/placeholder.png';
+                    }}
+                  />
+                  <span className="text-xs text-forest-500 dark:text-forest-400">
+                    {image ? image.name : form.existing_image_path}
+                  </span>
+                </div>
+              )}
             </div>
 
             {msg.text && (
@@ -562,11 +579,12 @@ export default function ManageAnimals() {
                   <tr className="transition-colors hover:bg-cream-50 dark:hover:bg-forest-800/50">
                     <td className="py-3 pr-4">
                       <img
-                        src={animal.image_path}
+                        src={getImageUrl(animal.image_path)}
                         alt={animal.name}
                         className="h-10 w-10 rounded-xl object-cover"
                         onError={(e) => {
-                          e.target.src = '/uploads/placeholder.png';
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/placeholder.png';
                         }}
                       />
                     </td>
