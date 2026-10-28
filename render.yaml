@@ -1,36 +1,69 @@
 services:
   # ── Backend: Node.js Express ───────────────────────────────────────────────
   - type: web
-    name: campuspaws-backend
+    name: pawtrack-backend
     env: node
     plan: free
     region: ohio
-    buildCommand: "cd backend && npm install"
-    startCommand: "cd backend && npm start"
+    rootDir: backend
+    buildCommand: "npm install"
+    startCommand: "npm start"
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 4000
+      # PORT is injected automatically by Render — no need to hard-code it.
+      # server.js already reads process.env.PORT || 4000, so this just works.
+
       - key: SESSION_SECRET
         generateValue: true
-      - key: FRONTEND_URL # Initially manually overridden in Render dashboard
-        value: https://campus-paws.onrender.com
+
+      # FRONTEND_URL: set this to your actual Render frontend URL after
+      # the frontend service is created, e.g.:
+      #   https://pawtrack-frontend.onrender.com
+      # It is also read by server.js's allowedOrigins list for CORS.
+      # Leave blank here; enter the real value in the Render dashboard.
+      - key: FRONTEND_URL
+        value: ""
+
+      # ── MySQL / PlanetScale (or other hosted MySQL) ──────────────────────
+      # All four must be set in the Render dashboard after provisioning the DB.
+      # Never put real credentials here — this file is committed to Git.
+      - key: DB_HOST
+        value: ""
+      - key: DB_USER
+        value: ""
+      - key: DB_PASSWORD
+        value: ""
+      - key: DB_NAME
+        value: ""
+
+      # Set DB_SSL=true when connecting to PlanetScale, Aiven, or any provider
+      # that requires TLS. Leave blank or omit for local dev / providers that
+      # don't need it. db.js reads this variable.
+      - key: DB_SSL
+        value: ""
 
   # ── Frontend: Static Site ──────────────────────────────────────────────────
   - type: web
-    name: campuspaws-frontend
+    name: pawtrack-frontend
     env: static
     plan: free
     region: ohio
-    buildCommand: "cd frontend && npm install && npm run build"
-    publishDir: "frontend/dist"
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    publishDir: "dist"
     envVars:
+      # VITE_API_BASE_URL must include the /api prefix so the frontend
+      # Axios client (api.js) sends requests to the correct backend path.
+      # Render's fromService.url gives just the root URL of the backend
+      # service — we append /api here.
       - key: VITE_API_BASE_URL
-        fromService:
-          name: campuspaws-backend
-          type: web
-          property: url
+        value: ""
+        # ↑ After deploying the backend, set this to:
+        #   https://<your-backend-service-name>.onrender.com/api
+        # You cannot use fromService here because Render does not support
+        # string concatenation on fromService references. Enter the real
+        # URL in the Render dashboard.
     routes:
       - type: rewrite
         source: /*

@@ -10,7 +10,11 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '..', 'uploads')),
   filename:    (req, file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/\s/g, '_')),
 });
-const upload = multer({ storage });
+const imageFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) return cb(null, true);
+  cb(new Error('Only image files are allowed'), false);
+};
+const upload = multer({ storage, fileFilter: imageFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // ---------------------------------------------------------------------------
 // raised_amount computation.

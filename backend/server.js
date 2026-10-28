@@ -14,7 +14,6 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   process.env.FRONTEND_URL,
-  'https://pawtrack-frontend.onrender.com',
 ].filter(Boolean);
 
 app.use(cors({
@@ -69,5 +68,17 @@ app.use('/api/donations', require('./routes/donations'));
 app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/admin', require('./routes/admin'));
 
+// ---------------------------------------------------------------------------
+// Production error handler — must be registered AFTER all routes.
+// Returns a generic message so internal details (stack traces, DB errors)
+// are never sent to clients. The full error is logged server-side only.
+// ---------------------------------------------------------------------------
+app.use((err, req, res, next) => {
+  console.error('[error]', err.message);
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500).json({ error: isProd ? 'Internal server error' : err.message });
+});
+
+// Bind to 0.0.0.0 so Render's proxy can reach the process on any interface.
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`🐾 PawTrack backend running on http://localhost:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`🐾 PawTrack backend running on port ${PORT}`));

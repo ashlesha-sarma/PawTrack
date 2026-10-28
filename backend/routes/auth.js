@@ -38,7 +38,8 @@ router.post('/register', async (req, res) => {
     req.session.user = { id: result.insertId, name, email, role: 'user' };
     res.json({ success: true, user: req.session.user });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[auth/register]', err.message);
+    res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
 });
 

@@ -6,16 +6,22 @@ const bcrypt = require('bcryptjs');
 // ---------------------------------------------------------------------------
 // Configured entirely from environment variables so the same code runs
 // locally and in any deployment environment without code changes.
+// DB_SSL=true enables TLS — required by PlanetScale, Aiven, and similar
+// hosted MySQL providers. Leave unset for local dev (MySQL without TLS).
+const sslConfig = process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false;
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'pawtrack',
+  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
   dateStrings: true, // return DATE/DATETIME as strings, matching the old sqlite string-based reads the routes expect
   decimalNumbers: true, // return DECIMAL columns as JS numbers, not strings
+  ssl: sslConfig || undefined,
 });
 
 // ---------------------------------------------------------------------------
@@ -294,7 +300,11 @@ async function initDb() {
 }
 
 initDb().catch((err) => {
-  console.error('[db] Failed to initialize database:', err);
+  // Log the error code/message but NOT the full err object, which can
+  // include the connection string, password, and host in its stack trace.
+  console.error('[db] Failed to initialize database.');
+  console.error('[db] Error code:', err.code || 'UNKNOWN');
+  console.error('[db] Error message:', err.message);
   process.exit(1);
 });
 
