@@ -171,7 +171,7 @@ export default function ManageDrives() {
               <input type="date" className="input" value={form.deadline} onChange={set('deadline')} />
             </div>
             <div className="md:col-span-2">
-              <label className="label">Cover photo</label>
+              <label className="label">Cover photo *</label>
               <input
                 type="file"
                 accept="image/*"
