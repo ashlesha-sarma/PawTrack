@@ -253,9 +253,7 @@ export default function Landing() {
               <Link to="/home/donations" className="btn-primary">
                 View Donation Drives
               </Link>
-              <Link to="/home/explore" className="btn-ghost">
-                Read Community Updates
-              </Link>
+
             </div>
           </div>
         </div>
