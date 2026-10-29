@@ -17,13 +17,12 @@ services:
       - key: SESSION_SECRET
         generateValue: true
 
-      # FRONTEND_URL: set this to your actual Render frontend URL after
-      # the frontend service is created, e.g.:
-      #   https://pawtrack-frontend.onrender.com
-      # It is also read by server.js's allowedOrigins list for CORS.
-      # Leave blank here; enter the real value in the Render dashboard.
+      # FRONTEND_URL: the Render frontend origin added to the CORS allowlist.
+      # server.js also hardcodes this origin as a safety net, but setting it
+      # here too keeps the configuration self-documenting and lets you override
+      # it for custom domains without touching code.
       - key: FRONTEND_URL
-        value: ""
+        value: "https://pawtrack-frontend.onrender.com"
 
       # ── MySQL / PlanetScale (or other hosted MySQL) ──────────────────────
       # All four must be set in the Render dashboard after provisioning the DB.
@@ -57,13 +56,12 @@ services:
       # Axios client (api.js) sends requests to the correct backend path.
       # Render's fromService.url gives just the root URL of the backend
       # service — we append /api here.
+      # VITE_API_BASE_URL: injected at build time so every image URL and API
+      # call in the production bundle points to the correct backend service.
+      # Must include the /api suffix because api.js uses it as the axios baseURL
+      # and imageUrl.js strips /api to derive the bare backend origin.
       - key: VITE_API_BASE_URL
-        value: ""
-        # ↑ After deploying the backend, set this to:
-        #   https://<your-backend-service-name>.onrender.com/api
-        # You cannot use fromService here because Render does not support
-        # string concatenation on fromService references. Enter the real
-        # URL in the Render dashboard.
+        value: "https://pawtrack-backend-6n0t.onrender.com/api"
     routes:
       - type: rewrite
         source: /*

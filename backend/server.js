@@ -13,6 +13,11 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  // Production frontend on Render — hardcoded so CORS works even if the
+  // FRONTEND_URL env var is not set in the Render dashboard.
+  'https://pawtrack-frontend.onrender.com',
+  // Dynamic override: set FRONTEND_URL in the Render dashboard if you ever
+  // rename the frontend service or move to a custom domain.
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -56,7 +61,17 @@ app.use(session({
   }
 }));
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve uploaded animal/drive images. The setHeaders callback adds the
+// correct MIME type for AVIF files — Express's built-in mime database
+// does not include image/avif, so without this they would be sent as
+// application/octet-stream, which can confuse strict clients/CDNs.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.avif')) {
+      res.setHeader('Content-Type', 'image/avif');
+    }
+  },
+}));
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/animals', require('./routes/animals'));
