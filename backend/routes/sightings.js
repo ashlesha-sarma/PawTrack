@@ -62,6 +62,26 @@ router.post('/', ensureAuth, upload.single('image'), async (req, res) => {
   }
 });
 
+// GET /public/:animal_id — public-safe sighting history for one animal.
+// Returns only display fields; no user IDs, reported_by, or names are
+// included so this endpoint is safe to call from unauthenticated pages.
+// IMPORTANT: registered BEFORE /:animal_id so Express does not parse
+// the literal string "public" as an animal_id parameter.
+router.get('/public/:animal_id', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT sighting_id, location, notes, reported_at, verified
+       FROM   sightings
+       WHERE  animal_id = ?
+       ORDER  BY reported_at DESC`,
+      [req.params.animal_id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /:animal_id — all sightings for a given animal, most recent first.
 router.get('/:animal_id', async (req, res) => {
   try {

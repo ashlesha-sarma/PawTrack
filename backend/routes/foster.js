@@ -111,6 +111,26 @@ router.patch('/:id/complete', ensureAdmin, async (req, res) => {
   }
 });
 
+// GET /public/:animal_id — public-safe foster history for one animal.
+// Returns only display fields; no foster_user_id or foster_user_name are
+// included so this endpoint is safe to call from unauthenticated pages.
+// IMPORTANT: registered BEFORE /:animal_id so Express does not parse
+// the literal string "public" as an animal_id parameter.
+router.get('/public/:animal_id', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT placement_id, start_date, end_date, status
+       FROM   foster_placements
+       WHERE  animal_id = ?
+       ORDER  BY start_date DESC`,
+      [req.params.animal_id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /:animal_id — placement history for one animal, most recent first.
 router.get('/:animal_id', async (req, res) => {
   try {

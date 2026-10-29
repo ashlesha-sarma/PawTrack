@@ -34,8 +34,12 @@ const upload = multer({ storage, fileFilter: imageFilter, limits: { fileSize: 5 
 // vaccination_status can no longer be derived from `animals` at all (it now
 // lives in medical_records as record_type='vaccination' rows) — we default
 // it to 'Not vaccinated' so old badges simply stay hidden rather than lying.
-// location_found / current_location have no schema equivalent anymore
-// (sightings.location is the closest concept) — returned as null.
+//
+// location_found: populated by the GET queries via a correlated subquery that
+// fetches the location of the earliest sighting. NULL when no sightings exist.
+//
+// current_location: derived from has_active_foster (also from the query) and
+// current_status. Never exposes foster user identity.
 //
 // `id` is aliased from animal_id so route params, React keys, and links
 // throughout the frontend (`animal.id`) keep working without edits.
@@ -52,20 +56,49 @@ function withLegacyFields(row) {
     if (row.current_status === 'under_care') health_status = 'Needs treatment';
   }
 
+  // Derive a human-readable current location without leaking any user data.
+  let current_location;
+  if (row.has_active_foster || row.current_status === 'fostered') {
+    current_location = 'With a foster family';
+  } else if (row.current_status === 'adopted') {
+    current_location = 'Adopted';
+  } else {
+    current_location = 'Campus shelter';
+  }
+
   return {
     ...row,
     id: row.animal_id,
     up_for_adoption,
     health_status,
     vaccination_status: 'Not vaccinated',
-    location_found: null,
-    current_location: null,
+    // location_found comes from the correlated subquery in the SELECT — pass
+    // it through unchanged. Falls back to null if no sightings exist.
+    location_found: row.location_found || null,
+    current_location,
   };
 }
 
 router.get('/', async (req, res) => {
   try {
-    const [rows] = await pool.query(`SELECT * FROM animals ORDER BY created_at DESC`);
+    const [rows] = await pool.query(
+      `SELECT a.*,
+         (
+           SELECT s.location
+           FROM   sightings s
+           WHERE  s.animal_id = a.animal_id
+           ORDER  BY s.reported_at ASC, s.sighting_id ASC
+           LIMIT  1
+         ) AS location_found,
+         (
+           SELECT COUNT(*)
+           FROM   foster_placements fp
+           WHERE  fp.animal_id = a.animal_id
+             AND  fp.status = 'active'
+         ) AS has_active_foster
+       FROM animals a
+       ORDER BY a.created_at DESC`
+    );
     res.json(rows.map(withLegacyFields));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -74,7 +107,25 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const [[row]] = await pool.query(`SELECT * FROM animals WHERE animal_id = ?`, [req.params.id]);
+    const [[row]] = await pool.query(
+      `SELECT a.*,
+         (
+           SELECT s.location
+           FROM   sightings s
+           WHERE  s.animal_id = a.animal_id
+           ORDER  BY s.reported_at ASC, s.sighting_id ASC
+           LIMIT  1
+         ) AS location_found,
+         (
+           SELECT COUNT(*)
+           FROM   foster_placements fp
+           WHERE  fp.animal_id = a.animal_id
+             AND  fp.status = 'active'
+         ) AS has_active_foster
+       FROM animals a
+       WHERE a.animal_id = ?`,
+      [req.params.id]
+    );
     res.json(withLegacyFields(row) || null);
   } catch (err) {
     res.status(500).json({ error: err.message });

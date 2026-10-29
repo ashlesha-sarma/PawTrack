@@ -7,6 +7,8 @@ import {
   ArrowLeftIcon,
   CalendarIcon,
   CatIcon,
+  CheckCircleIcon,
+  ClockIcon,
   DogIcon,
   GenderIcon,
   HomeIcon,
@@ -40,6 +42,13 @@ function InfoRow({ icon: Icon, label, value, highlight }) {
   );
 }
 
+// Badge colours that mirror the admin panel's convention
+const FOSTER_STATUS_CLASS = {
+  active:    'badge-green',
+  completed: 'badge-blue',
+  cancelled: 'badge-red',
+};
+
 export default function AnimalDetail() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -47,6 +56,8 @@ export default function AnimalDetail() {
   const [animal, setAnimal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [medicalRecords, setMedicalRecords] = useState([]);
+  const [sightings, setSightings] = useState([]);
+  const [fosterHistory, setFosterHistory] = useState([]);
 
   useEffect(() => {
     API.get(`/animals/${id}`)
@@ -61,6 +72,20 @@ export default function AnimalDetail() {
     API.get(`/medical/${id}`)
       .then((r) => setMedicalRecords(r.data || []))
       .catch(() => setMedicalRecords([]));
+  }, [id]);
+
+  // Public sighting history — no user data returned by the endpoint.
+  useEffect(() => {
+    API.get(`/sightings/public/${id}`)
+      .then((r) => setSightings(r.data || []))
+      .catch(() => setSightings([]));
+  }, [id]);
+
+  // Public foster history — no user data returned by the endpoint.
+  useEffect(() => {
+    API.get(`/foster/public/${id}`)
+      .then((r) => setFosterHistory(r.data || []))
+      .catch(() => setFosterHistory([]));
   }, [id]);
 
   if (loading) {
@@ -212,6 +237,83 @@ export default function AnimalDetail() {
                 </div>
               </div>
             )}
+
+            {/* Sighting history — read-only, public-safe */}
+            <div className="card p-6">
+              <h2 className="text-xl text-forest-950 dark:text-cream-100">Sighting history</h2>
+              {sightings.length === 0 ? (
+                <p className="mt-3 text-sm text-forest-500 dark:text-forest-400">No sightings recorded yet.</p>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  {sightings.map((s) => (
+                    <div
+                      key={s.sighting_id}
+                      className="flex items-start gap-3 border-b border-cream-200 pb-3 last:border-0 last:pb-0 dark:border-forest-800"
+                    >
+                      <div className="stat-icon h-9 w-9 rounded-lg">
+                        <MapPinIcon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-medium text-forest-800 dark:text-cream-100">{s.location}</p>
+                          <div className="flex items-center gap-2">
+                            {s.verified && (
+                              <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                <CheckCircleIcon className="h-3.5 w-3.5" />
+                                Verified
+                              </span>
+                            )}
+                            <p className="text-xs text-forest-400">
+                              {new Date(s.reported_at).toLocaleDateString('en-IN')}
+                            </p>
+                          </div>
+                        </div>
+                        {s.notes && (
+                          <p className="mt-1 text-sm text-forest-600 dark:text-forest-300">{s.notes}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Foster history — read-only, public-safe */}
+            <div className="card p-6">
+              <h2 className="text-xl text-forest-950 dark:text-cream-100">Foster history</h2>
+              {fosterHistory.length === 0 ? (
+                <p className="mt-3 text-sm text-forest-500 dark:text-forest-400">No foster placements yet.</p>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  {fosterHistory.map((f) => (
+                    <div
+                      key={f.placement_id}
+                      className="flex items-start gap-3 border-b border-cream-200 pb-3 last:border-0 last:pb-0 dark:border-forest-800"
+                    >
+                      <div className="stat-icon h-9 w-9 rounded-lg">
+                        <HomeIcon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-medium text-forest-800 dark:text-cream-100">
+                            {new Date(f.start_date).toLocaleDateString('en-IN')}
+                            {' → '}
+                            {f.status === 'active'
+                              ? 'Present'
+                              : f.end_date
+                              ? new Date(f.end_date).toLocaleDateString('en-IN')
+                              : '—'}
+                          </p>
+                          <span className={`${FOSTER_STATUS_CLASS[f.status] || 'badge-amber'} text-xs`}>
+                            {f.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-5 lg:col-span-2">
