@@ -8,7 +8,7 @@ import { getImageUrl } from '../../utils/imageUrl';
 export default function AdoptionForm() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [animal, setAnimal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -24,6 +24,11 @@ export default function AdoptionForm() {
   });
 
   useEffect(() => {
+    // Wait for AuthContext to finish its /auth/me fetch before deciding
+    // whether to redirect. Without this guard a logged-in user who refreshes
+    // directly on /home/adopt/:id would be sent to /login because `user` is
+    // null on the very first render while the async fetch is in flight.
+    if (authLoading) return;
     if (!user) {
       nav('/login');
       return;
@@ -32,7 +37,7 @@ export default function AdoptionForm() {
       .then((r) => setAnimal(r.data))
       .finally(() => setLoading(false));
     setForm((f) => ({ ...f, fullname: user.name || '', email: user.email || '' }));
-  }, [id, nav, user]);
+  }, [id, nav, user, authLoading]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -51,7 +56,8 @@ export default function AdoptionForm() {
     }
   };
 
-  if (loading) {
+  // Show the spinner while either auth or the animal fetch is in progress.
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-terra-500 border-t-transparent" />
@@ -79,11 +85,11 @@ export default function AdoptionForm() {
     <div className="min-h-screen pb-16 pt-8">
       <div className="page-container max-w-5xl">
         <div className="mb-8 flex flex-wrap items-center gap-2 text-sm text-forest-500 dark:text-forest-400">
-          <Link to="/animals" className="hover:text-terra-600 dark:hover:text-terra-300">
+          <Link to="/home/animals" className="hover:text-terra-600 dark:hover:text-terra-300">
             Animals
           </Link>
           <span>/</span>
-          <Link to={`/animals/${id}`} className="hover:text-terra-600 dark:hover:text-terra-300">
+          <Link to={`/home/animals/${id}`} className="hover:text-terra-600 dark:hover:text-terra-300">
             {animal?.name}
           </Link>
           <span>/</span>
@@ -221,7 +227,7 @@ export default function AdoptionForm() {
               </p>
             </form>
 
-            <Link to={`/animals/${id}`} className="btn-ghost mt-5 inline-flex">
+            <Link to={`/home/animals/${id}`} className="btn-ghost mt-5 inline-flex">
               <ArrowLeftIcon className="h-4 w-4" />
               Return to Animal Profile
             </Link>

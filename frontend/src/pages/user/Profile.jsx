@@ -18,13 +18,17 @@ const STATUS_STYLE = {
 };
 
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const nav = useNavigate();
   const [requests, setRequests] = useState([]);
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Guard against the auth race: AuthContext fetches /auth/me asynchronously.
+    // Without this check a logged-in user who refreshes directly on /home/profile
+    // would be redirected to /login because `user` is null on the first render.
+    if (authLoading) return;
     if (!user) {
       nav('/login');
       return;
@@ -35,14 +39,14 @@ export default function Profile() {
         setDonations(r2.data || []);
       })
       .finally(() => setLoading(false));
-  }, [nav, user]);
+  }, [nav, user, authLoading]);
 
   const handleLogout = async () => {
     await logout();
     nav('/');
   };
 
-  if (!user) return null;
+  if (authLoading || !user) return null;
 
   return (
     <div className="min-h-screen pb-16 pt-8">

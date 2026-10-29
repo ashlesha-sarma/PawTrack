@@ -427,7 +427,7 @@ export default function DriveDetail() {
           </div>
           <h2 className="text-2xl text-forest-950 dark:text-cream-100">Campaign not found</h2>
           <p className="mt-2 text-sm text-forest-500 dark:text-forest-400">The requested campaign could not be located.</p>
-          <Link to="/donations" className="btn-primary mt-6 inline-flex">
+          <Link to="/home/donations" className="btn-primary mt-6 inline-flex">
             <ArrowLeftIcon className="h-4 w-4" /> Back to Campaigns
           </Link>
         </div>
@@ -453,7 +453,7 @@ export default function DriveDetail() {
           <nav className="mb-6 flex items-center gap-2 text-sm text-forest-500 dark:text-forest-400">
             <Link to="/" className="hover:text-terra-600 dark:hover:text-terra-300 transition-colors">Home</Link>
             <span>/</span>
-            <Link to="/donations" className="hover:text-terra-600 dark:hover:text-terra-300 transition-colors">Donation Drives</Link>
+            <Link to="/home/donations" className="hover:text-terra-600 dark:hover:text-terra-300 transition-colors">Donation Drives</Link>
             <span>/</span>
             <span className="truncate max-w-[200px] text-forest-800 dark:text-cream-200">{drive.title}</span>
           </nav>
@@ -635,7 +635,7 @@ export default function DriveDetail() {
                 ) : (
                   <div className="rounded-2xl border border-cream-200 bg-cream-50 p-4 text-center dark:border-forest-800 dark:bg-forest-800/60">
                     <p className="text-sm text-forest-600 dark:text-forest-300">This campaign is no longer accepting contributions.</p>
-                    <Link to="/donations" className="mt-3 inline-flex text-sm font-medium text-terra-600 hover:text-terra-700 dark:text-terra-300">
+                    <Link to="/home/donations" className="mt-3 inline-flex text-sm font-medium text-terra-600 hover:text-terra-700 dark:text-terra-300">
                       View other campaigns →
                     </Link>
                   </div>

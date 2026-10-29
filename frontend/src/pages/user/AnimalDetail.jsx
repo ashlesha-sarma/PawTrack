@@ -62,7 +62,7 @@ export default function AnimalDetail() {
   useEffect(() => {
     API.get(`/animals/${id}`)
       .then((r) => setAnimal(r.data))
-      .catch(() => nav('/animals'))
+      .catch(() => nav('/home/animals'))
       .finally(() => setLoading(false));
   }, [id, nav]);
 
@@ -113,7 +113,7 @@ export default function AnimalDetail() {
             <p className="mt-2 text-sm text-forest-500 dark:text-forest-400">
               This animal profile could not be found.
             </p>
-            <Link to="/animals" className="btn-primary mt-6 inline-flex">
+            <Link to="/home/animals" className="btn-primary mt-6 inline-flex">
               <ArrowLeftIcon className="h-4 w-4" />
               Back to Animals
             </Link>
@@ -135,7 +135,7 @@ export default function AnimalDetail() {
             Home
           </Link>
           <span>/</span>
-          <Link to="/animals" className="hover:text-terra-600 dark:hover:text-terra-300">
+          <Link to="/home/animals" className="hover:text-terra-600 dark:hover:text-terra-300">
             Animals
           </Link>
           <span>/</span>
@@ -346,12 +346,12 @@ export default function AnimalDetail() {
                     </p>
                   </div>
                   {user ? (
-                    <Link to={`/adopt/${animal.id}`} className="btn-primary mt-4 w-full justify-center">
+                    <Link to={`/home/adopt/${animal.id}`} className="btn-primary mt-4 w-full justify-center">
                       Continue to Adoption Form
                     </Link>
                   ) : (
                     <div className="mt-4 space-y-3">
-                      <Link to="/" className="btn-primary w-full justify-center">
+                      <Link to="/login" className="btn-primary w-full justify-center">
                         Sign In to Apply
                       </Link>
                       <p className="text-center text-sm text-forest-500 dark:text-forest-400">
@@ -385,7 +385,7 @@ export default function AnimalDetail() {
                 </div>
               )}
 
-              <Link to="/animals" className="btn-ghost mt-4 w-full justify-center">
+              <Link to="/home/animals" className="btn-ghost mt-4 w-full justify-center">
                 <ArrowLeftIcon className="h-4 w-4" />
                 Back to Animal Listings
               </Link>

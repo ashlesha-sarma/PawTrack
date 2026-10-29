@@ -4,6 +4,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 export default function DonateForm() {
   const { id } = useParams();
   const nav = useNavigate();
-  useEffect(() => { nav(`/donations/${id}`, { replace: true }); }, [id]);
+  useEffect(() => { nav(`/home/donations/${id}`, { replace: true }); }, [id]);
   return null;
 }
