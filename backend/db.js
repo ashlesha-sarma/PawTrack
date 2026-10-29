@@ -293,6 +293,40 @@ async function initDb() {
     await seedAnimals(conn);
     await seedDonationDrives(conn);
 
+    // ---------------------------------------------------------------------------
+    // Reversible migration: make donation_drives.deadline nullable.
+    //
+    // Existing rows keep their stored deadline values — we never drop the column.
+    // The app no longer writes or reads deadline (routes and frontend omit it),
+    // but preserving the column means the change can be reversed with a single
+    // ALTER TABLE ... MODIFY deadline DATE NOT NULL if ever needed.
+    //
+    // Idempotency: we check information_schema before running the ALTER so that
+    // repeated restarts (e.g. Render cold-starts) skip it if already done or if
+    // the column is absent on a fresh install where CREATE TABLE used DATE NULL.
+    // ---------------------------------------------------------------------------
+    try {
+      const [[col]] = await conn.query(
+        `SELECT IS_NULLABLE
+         FROM   information_schema.COLUMNS
+         WHERE  TABLE_SCHEMA = DATABASE()
+           AND  TABLE_NAME   = 'donation_drives'
+           AND  COLUMN_NAME  = 'deadline'`
+      );
+      if (col && col.IS_NULLABLE === 'NO') {
+        await conn.query(
+          `ALTER TABLE donation_drives MODIFY deadline DATE NULL`
+        );
+        console.log('[db] donation_drives.deadline made nullable');
+      } else {
+        console.log('[db] donation_drives.deadline already nullable/absent, skipped');
+      }
+    } catch (migErr) {
+      // A failure here must not crash startup — existing functionality is
+      // unaffected because the route and frontend no longer use deadline.
+      console.error('[db] migration warning: could not modify donation_drives.deadline:', migErr.message);
+    }
+
     console.log('[db] MySQL schema ready and seed data checked.');
   } finally {
     conn.release();
