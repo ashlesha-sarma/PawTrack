@@ -27,7 +27,6 @@ export default function Footer() {
               {[
                 ['Animals', '/home/animals'],
                 ['Donation Drives', '/home/donations'],
-                ['Community Updates', '/home/explore'],
                 ['Create Account', '/register'],
               ].map(([label, to]) => (
                 <li key={to}>
