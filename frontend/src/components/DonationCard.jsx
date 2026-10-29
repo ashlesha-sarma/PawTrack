@@ -40,9 +40,6 @@ function MiniProgressBar({ pct }) {
 
 export default function DonationCard({ drive }) {
   const pct = Math.min(100, Math.round((drive.raised_amount / drive.target_amount) * 100));
-  const daysLeft = drive.deadline
-    ? Math.max(0, Math.ceil((new Date(drive.deadline) - Date.now()) / 86400000))
-    : null;
 
   return (
     <article
@@ -78,12 +75,6 @@ export default function DonationCard({ drive }) {
           ) : (
             <span className="rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-semibold text-white">
               Closed
-            </span>
-          )}
-          {daysLeft !== null && drive.is_active && (
-            <span className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm ${daysLeft <= 7 ? 'bg-red-500' : 'bg-amber-500'}`}>
-              <ClockIcon className="h-3 w-3" />
-              {daysLeft === 0 ? 'Final day' : `${daysLeft}d left`}
             </span>
           )}
         </div>
