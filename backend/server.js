@@ -60,9 +60,9 @@ app.use(session({
   cookie: {
     secure: isProd, // true in production (HTTPS only)
     httpOnly: true,
-    // 'none' is needed because the frontend and backend live on different
-    // origins in production. Locally both are on localhost, so 'lax' works.
-    sameSite: isProd ? 'none' : 'lax',
+    // Frontend and API are now on the SAME origin (Express serves the React
+    // build), so 'lax' is correct everywhere — no cross-site cookie needed.
+    sameSite: 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
   }
 }));
@@ -88,6 +88,20 @@ app.use('/api/adoptions', require('./routes/adoptions'));
 app.use('/api/donations', require('./routes/donations'));
 app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/admin', require('./routes/admin'));
+
+// ---------------------------------------------------------------------------
+// Serve the built React app from the same origin as the API.
+// In production, `frontend/dist` is built during Render's build step.
+// In local dev this directory won't exist — Express will just skip it and
+// Vite's own dev server handles the frontend instead.
+// ---------------------------------------------------------------------------
+const distPath = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(express.static(distPath));
+// SPA catch-all: any request that isn't /api/* or /uploads/* gets index.html
+// so React Router can handle client-side navigation.
+app.get(/^\/(?!api|uploads).*/, (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
 
 // ---------------------------------------------------------------------------
 // Production error handler — must be registered AFTER all routes.

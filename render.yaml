@@ -1,32 +1,32 @@
 services:
-  # ── Backend: Node.js Express ───────────────────────────────────────────────
+  # ── Backend: Node.js Express (also serves the built React frontend) ─────────
   - type: web
     name: pawtrack-backend
     env: node
     plan: free
     region: ohio
     rootDir: backend
-    buildCommand: "npm install"
+    # Build the React app first so Express can serve it from ../frontend/dist.
+    # VITE_API_BASE_URL=/api so the bundle uses relative URLs that hit Express
+    # directly — no cross-origin requests, no cookie issues.
+    buildCommand: "npm install && cd ../frontend && npm install && VITE_API_BASE_URL=/api npm run build"
     startCommand: "npm start"
     envVars:
       - key: NODE_ENV
         value: production
       # PORT is injected automatically by Render — no need to hard-code it.
-      # server.js already reads process.env.PORT || 4000, so this just works.
 
       - key: SESSION_SECRET
         generateValue: true
 
-      # FRONTEND_URL: the Render frontend origin added to the CORS allowlist.
-      # server.js also hardcodes this origin as a safety net, but setting it
-      # here too keeps the configuration self-documenting and lets you override
-      # it for custom domains without touching code.
+      # FRONTEND_URL: still listed for CORS (covers the old frontend service
+      # URL and any local dev origin). Having it set does no harm now that
+      # frontend and API share one origin.
       - key: FRONTEND_URL
         value: "https://pawtrack-frontend.onrender.com"
 
       # ── MySQL / PlanetScale (or other hosted MySQL) ──────────────────────
       # All four must be set in the Render dashboard after provisioning the DB.
-      # Never put real credentials here — this file is committed to Git.
       - key: DB_HOST
         value: ""
       - key: DB_USER
@@ -42,7 +42,9 @@ services:
       - key: DB_SSL
         value: ""
 
-  # ── Frontend: Static Site ──────────────────────────────────────────────────
+  # ── Frontend static service (OPTIONAL — kept so old links still work) ───────
+  # The real app is now served by the backend service above.
+  # If you want to retire this, delete it from the Render dashboard.
   - type: web
     name: pawtrack-frontend
     env: static
@@ -52,21 +54,15 @@ services:
     buildCommand: "npm install && npm run build"
     publishDir: "dist"
     envVars:
-      # Use a relative /api path so the browser sends API requests to the
-      # SAME origin as the frontend (same-origin cookies, no SameSite issues).
-      # Render's proxy route below forwards /api/* to the real backend.
       - key: VITE_API_BASE_URL
         value: "/api"
     routes:
-      # Proxy /api/* and /uploads/* to the backend on the SAME origin so
-      # session cookies are treated as first-party and always sent.
-      - type: proxy
+      - type: rewrite
         source: /api/*
         destination: https://pawtrack-backend-6n0t.onrender.com/api/*
-      - type: proxy
+      - type: rewrite
         source: /uploads/*
         destination: https://pawtrack-backend-6n0t.onrender.com/uploads/*
-      # SPA catch-all — must come AFTER the proxy routes.
       - type: rewrite
         source: /*
         destination: /index.html
