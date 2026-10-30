@@ -1,6 +1,6 @@
 // VITE_API_BASE_URL is injected at build time by Vite from the appropriate
 // .env file:
-//   .env.development  → /api  (npm run dev — relative, goes through Vite proxy)
+//   .env.development  → http://localhost:4000/api   (npm run dev)
 //   .env.production   → https://pawtrack-backend-6n0t.onrender.com/api  (npm run build)
 //
 // The fallback to localhost:4000 is a last-resort safety net so that
@@ -13,7 +13,6 @@ const rawBaseUrl =
   'http://localhost:4000/api';
 
 // Strip the trailing /api segment to get the bare origin, e.g.
-//   "/api"                                                → ""  (same-origin via Vite proxy)
 //   "http://localhost:4000/api"                          → "http://localhost:4000"
 //   "https://pawtrack-backend-6n0t.onrender.com/api"     → "https://pawtrack-backend-6n0t.onrender.com"
 const backendOrigin = rawBaseUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');

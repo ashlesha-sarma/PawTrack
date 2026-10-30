@@ -1,32 +1,32 @@
 services:
-  # ── Backend: Node.js Express (also serves the built React frontend) ─────────
+  # ── Backend: Node.js Express ───────────────────────────────────────────────
   - type: web
     name: pawtrack-backend
     env: node
     plan: free
     region: ohio
     rootDir: backend
-    # Build the React app first so Express can serve it from ../frontend/dist.
-    # VITE_API_BASE_URL=/api so the bundle uses relative URLs that hit Express
-    # directly — no cross-origin requests, no cookie issues.
-    buildCommand: "npm install && cd ../frontend && npm install && VITE_API_BASE_URL=/api npm run build"
+    buildCommand: "npm install"
     startCommand: "npm start"
     envVars:
       - key: NODE_ENV
         value: production
       # PORT is injected automatically by Render — no need to hard-code it.
+      # server.js already reads process.env.PORT || 4000, so this just works.
 
       - key: SESSION_SECRET
         generateValue: true
 
-      # FRONTEND_URL: still listed for CORS (covers the old frontend service
-      # URL and any local dev origin). Having it set does no harm now that
-      # frontend and API share one origin.
+      # FRONTEND_URL: the Render frontend origin added to the CORS allowlist.
+      # server.js also hardcodes this origin as a safety net, but setting it
+      # here too keeps the configuration self-documenting and lets you override
+      # it for custom domains without touching code.
       - key: FRONTEND_URL
         value: "https://pawtrack-frontend.onrender.com"
 
       # ── MySQL / PlanetScale (or other hosted MySQL) ──────────────────────
       # All four must be set in the Render dashboard after provisioning the DB.
+      # Never put real credentials here — this file is committed to Git.
       - key: DB_HOST
         value: ""
       - key: DB_USER
@@ -42,9 +42,7 @@ services:
       - key: DB_SSL
         value: ""
 
-  # ── Frontend static service (OPTIONAL — kept so old links still work) ───────
-  # The real app is now served by the backend service above.
-  # If you want to retire this, delete it from the Render dashboard.
+  # ── Frontend: Static Site ──────────────────────────────────────────────────
   - type: web
     name: pawtrack-frontend
     env: static
@@ -54,15 +52,17 @@ services:
     buildCommand: "npm install && npm run build"
     publishDir: "dist"
     envVars:
+      # VITE_API_BASE_URL must include the /api prefix so the frontend
+      # Axios client (api.js) sends requests to the correct backend path.
+      # Render's fromService.url gives just the root URL of the backend
+      # service — we append /api here.
+      # VITE_API_BASE_URL: injected at build time so every image URL and API
+      # call in the production bundle points to the correct backend service.
+      # Must include the /api suffix because api.js uses it as the axios baseURL
+      # and imageUrl.js strips /api to derive the bare backend origin.
       - key: VITE_API_BASE_URL
-        value: "/api"
+        value: "https://pawtrack-backend-6n0t.onrender.com/api"
     routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://pawtrack-backend-6n0t.onrender.com/api/*
-      - type: rewrite
-        source: /uploads/*
-        destination: https://pawtrack-backend-6n0t.onrender.com/uploads/*
       - type: rewrite
         source: /*
         destination: /index.html

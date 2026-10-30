@@ -142,11 +142,7 @@ function DonationModal({ drive, user, onClose, onSuccess }) {
       onSuccess(data, amt);
       setStep('success');
     } catch (e) {
-      setErrorMsg(
-        e.response?.status === 401
-          ? 'Your session has expired. Please sign in again, then retry your donation.'
-          : (e.response?.data?.error || 'Something went wrong while recording the donation.')
-      );
+      setErrorMsg(e.response?.data?.error || 'Something went wrong while recording the donation.');
       setStep('pick');
     }
   };
