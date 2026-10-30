@@ -15,7 +15,16 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
     req.session.user = { id: user.user_id, name: user.name, email: user.email, role: user.role };
-    res.json({ success: true, user: req.session.user });
+    // Persist the session to MySQL BEFORE replying so the very next request
+    // (e.g. a donation) is guaranteed to find it.
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error('[auth/login] session save failed:', saveErr.message);
+        return res.status(500).json({ error: 'Could not start session' });
+      }
+      res.json({ success: true, user: req.session.user });
+    });
+    return;
   } catch (err) {
     res.status(500).json({ error: 'Database error' });
   }
@@ -36,7 +45,11 @@ router.post('/register', async (req, res) => {
     );
 
     req.session.user = { id: result.insertId, name, email, role: 'user' };
-    res.json({ success: true, user: req.session.user });
+    req.session.save((saveErr) => {
+      if (saveErr) return res.status(500).json({ error: 'Could not start session' });
+      res.json({ success: true, user: req.session.user });
+    });
+    return;
   } catch (err) {
     console.error('[auth/register]', err.message);
     res.status(500).json({ error: 'Registration failed. Please try again.' });

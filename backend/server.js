@@ -41,6 +41,10 @@ app.use(express.urlencoded({ extended: true }));
 
 const isProd = process.env.NODE_ENV === 'production';
 
+// Behind Render's proxy the app sees plain HTTP; without this, express-session
+// refuses to set the Secure cookie and the login session is silently lost.
+if (isProd) app.set('trust proxy', 1);
+
 // Session store: reuses the same MySQL connection pool db.js already
 // maintains, so sessions live in the same database as everything else
 // (a "sessions" table is auto-created by express-mysql-session on startup).
@@ -54,9 +58,11 @@ app.use(session({
   saveUninitialized: false,
   proxy: isProd, // Required for secure cookies on Render
   cookie: {
-    secure: isProd, // true in production
+    secure: isProd, // true in production (HTTPS only)
     httpOnly: true,
-    sameSite: isProd ? 'none' : 'lax', // Use 'none' for cross-domain sessions
+    // 'none' is needed because the frontend and backend live on different
+    // origins in production. Locally both are on localhost, so 'lax' works.
+    sameSite: isProd ? 'none' : 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
   }
 }));

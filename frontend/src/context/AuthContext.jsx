@@ -14,6 +14,13 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Server rejected a request with 401 → our session is gone; clear stale state.
+  useEffect(() => {
+    const onExpired = () => setUser(null);
+    window.addEventListener('auth:expired', onExpired);
+    return () => window.removeEventListener('auth:expired', onExpired);
+  }, []);
+
   const logout = async () => {
     await API.get('/auth/logout').catch(() => {});
     setUser(null);
