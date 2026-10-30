@@ -43,7 +43,13 @@ router.get('/stats', ensureAdmin, async (req, res) => {
       pool.query(`SELECT COALESCE(SUM(amount), 0) AS total FROM donations`),
       pool.query(`SELECT COUNT(*) AS total FROM adoption_requests WHERE status = 'pending'`),
       pool.query(`SELECT COUNT(*) AS total FROM adoption_requests WHERE status = 'approved'`),
-      pool.query(`SELECT COUNT(*) AS total FROM foster_placements WHERE status = 'active'`),
+      pool.query(
+        `SELECT COUNT(DISTINCT a.animal_id) AS total
+         FROM animals a
+         LEFT JOIN foster_placements fp
+                ON fp.animal_id = a.animal_id AND fp.status = 'active'
+         WHERE a.current_status = 'fostered' OR fp.placement_id IS NOT NULL`
+      ),
       pool.query(
         `SELECT COUNT(*) AS total FROM medical_records
          WHERE record_type = 'vaccination'

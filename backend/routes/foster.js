@@ -79,6 +79,12 @@ router.post('/', ensureAdmin, async (req, res) => {
       [animal_id, foster_user_id, start_date]
     );
 
+    // Keep the animal's status in sync with its active placement.
+    await conn.query(
+      `UPDATE animals SET current_status = 'fostered' WHERE animal_id = ?`,
+      [animal_id]
+    );
+
     await conn.commit();
     res.json({ success: true, placement_id: result.insertId });
   } catch (err) {
@@ -103,6 +109,16 @@ router.patch('/:id/complete', ensureAdmin, async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Placement not found' });
     }
+
+    // Return the animal to 'available' when its foster ends.
+    await pool.query(
+      `UPDATE animals a
+       JOIN foster_placements fp ON fp.animal_id = a.animal_id
+       SET a.current_status = 'available'
+       WHERE fp.placement_id = ? AND a.current_status = 'fostered'`,
+      [req.params.id]
+    );
+
     res.json({ success: true });
   } catch (err) {
     // Covers the chk_foster_dates CHECK constraint (end_date >= start_date)
