@@ -52,17 +52,21 @@ services:
     buildCommand: "npm install && npm run build"
     publishDir: "dist"
     envVars:
-      # VITE_API_BASE_URL must include the /api prefix so the frontend
-      # Axios client (api.js) sends requests to the correct backend path.
-      # Render's fromService.url gives just the root URL of the backend
-      # service — we append /api here.
-      # VITE_API_BASE_URL: injected at build time so every image URL and API
-      # call in the production bundle points to the correct backend service.
-      # Must include the /api suffix because api.js uses it as the axios baseURL
-      # and imageUrl.js strips /api to derive the bare backend origin.
+      # Use a relative /api path so the browser sends API requests to the
+      # SAME origin as the frontend (same-origin cookies, no SameSite issues).
+      # Render's proxy route below forwards /api/* to the real backend.
       - key: VITE_API_BASE_URL
-        value: "https://pawtrack-backend-6n0t.onrender.com/api"
+        value: "/api"
     routes:
+      # Proxy /api/* and /uploads/* to the backend on the SAME origin so
+      # session cookies are treated as first-party and always sent.
+      - type: proxy
+        source: /api/*
+        destination: https://pawtrack-backend-6n0t.onrender.com/api/*
+      - type: proxy
+        source: /uploads/*
+        destination: https://pawtrack-backend-6n0t.onrender.com/uploads/*
+      # SPA catch-all — must come AFTER the proxy routes.
       - type: rewrite
         source: /*
         destination: /index.html
