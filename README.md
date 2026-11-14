@@ -57,7 +57,7 @@ npm run dev:frontend    # http://localhost:5173
 4. **Medical tab** → add a checkup and a vaccination record (with a due date) → note the "Vaccinations due" stat on the dashboard update.
 5. **Foster tab** → start a placement → try starting a second one for the same animal (blocked) → complete the first, then start a new one (allowed).
 6. **Adoption** → as two different users, submit adoption requests for the same animal → as moderator, approve one on the **Requests** page → the other auto-rejects and the animal flips to "adopted".
-7. **Donations** → open a campaign, donate as a user → watch the raised amount update live.
+7. **Donations** → open a campaign, donate as a user → watch the raised amount update live. Payment is simulated via a Razorpay-style checkout: the server creates a signed order, a mock gateway returns a signed payment, and the donation is inserted only after HMAC-SHA256 signature verification (test card `4111 1111 1111 1111` succeeds, `4000 0000 0000 0002` fails).
 8. **Transparency** → on the same campaign page, view the **Transparency** section showing raised / spent / remaining (spent comes from recorded expenses via the API).
 
 ## 9. USER vs MODERATOR

@@ -17,6 +17,9 @@ services:
       - key: SESSION_SECRET
         generateValue: true
 
+      - key: GATEWAY_SECRET
+        generateValue: true
+
       # FRONTEND_URL: the Render frontend origin added to the CORS allowlist.
       # server.js also hardcodes this origin as a safety net, but setting it
       # here too keeps the configuration self-documenting and lets you override

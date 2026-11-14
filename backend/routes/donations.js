@@ -4,6 +4,17 @@ const pool = require('../db');
 const multer = require('multer');
 const path = require('path');
 const { ensureAdmin, ensureAuth } = require('../middleware/auth');
+const crypto = require('crypto');
+
+// Dummy-gateway signing secret. Set GATEWAY_SECRET in the environment; falls back to SESSION_SECRET.
+const GATEWAY_SECRET = process.env.GATEWAY_SECRET || process.env.SESSION_SECRET || 'dev-secret';
+const hmac = (s) => crypto.createHmac('sha256', GATEWAY_SECRET).update(s).digest('hex');
+const safeEq = (a, b) => {
+  const x = Buffer.from(String(a));
+  const y = Buffer.from(String(b));
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
+};
+const rid = (prefix) => prefix + crypto.randomBytes(7).toString('hex');
 
 // ── Multer setup (unchanged from the original — campaign photo uploads) ──────
 const storage = multer.diskStorage({
@@ -91,39 +102,95 @@ router.get('/drives/:id/recent', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /donate — the primary (and now only) donation path. No payment
-// gateway: this mirrors the original "simulated / legacy" /donate endpoint,
-// which is now the standard flow. Razorpay's /create-order and
-// /verify-payment endpoints, the razorpay package usage, and all
-// crypto/HMAC signature-verification logic have been removed entirely.
-//
-// Since raised_amount is never stored, there is nothing to increment here —
-// inserting the donation row is the entire effect. The updated total is
-// simply whatever GET /drives/:id computes next.
+// SIMULATED RAZORPAY FLOW (no real payment provider)
+//   1. POST /create-order        -> server creates a signed order token
+//   2. POST /mock-gateway/pay    -> DUMMY gateway (plays Razorpay's role)
+//   3. POST /verify-payment      -> server verifies HMAC signature, then inserts the donation
 // ---------------------------------------------------------------------------
-router.post('/donate', ensureAuth, async (req, res) => {
-  const { drive_id, amount } = req.body;
-  const parsedAmount = Number(amount);
 
-  if (!drive_id || !parsedAmount || parsedAmount <= 0) {
+// Step 1: create an order. Stateless: the order is HMAC-signed, so no extra table is needed.
+router.post('/create-order', ensureAuth, async (req, res) => {
+  const amount = Math.round(Number(req.body.amount) * 100) / 100;
+  const driveId = req.body.drive_id;
+  if (!driveId || !Number.isFinite(amount) || amount < 1 || amount > 500000) {
     return res.status(400).json({ error: 'Invalid donation data' });
+  }
+  try {
+    const [[drive]] = await pool.query(
+      `SELECT drive_id, is_active FROM donation_drives WHERE drive_id = ?`,
+      [driveId]
+    );
+    if (!drive) return res.status(404).json({ error: 'Drive not found' });
+    if (!drive.is_active) return res.status(400).json({ error: 'This campaign is closed' });
+
+    const order = {
+      id: rid('order_'),
+      drive_id: drive.drive_id,
+      user_id: req.session.user.id,
+      amount,
+      exp: Date.now() + 15 * 60 * 1000, // valid for 15 minutes
+    };
+    const body = Buffer.from(JSON.stringify(order)).toString('base64url');
+    res.json({
+      order_id: order.id,
+      amount,
+      currency: 'INR',
+      order_token: `${body}.${hmac(body)}`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Step 2: DUMMY GATEWAY. Plays the role of Razorpay's servers.
+// DELETE this endpoint when switching to real Razorpay.
+router.post('/mock-gateway/pay', ensureAuth, (req, res) => {
+  const { order_id, outcome } = req.body;
+  if (!order_id) return res.status(400).json({ error: 'order_id required' });
+  if (outcome !== 'success') {
+    return res.status(402).json({ error: 'Payment failed (simulated): card declined' });
+  }
+  const payment_id = rid('pay_');
+  res.json({
+    razorpay_order_id: order_id,
+    razorpay_payment_id: payment_id,
+    razorpay_signature: hmac(`${order_id}|${payment_id}`), // same formula real Razorpay uses
+  });
+});
+
+// Step 3: verify the signature, then record the donation.
+router.post('/verify-payment', ensureAuth, async (req, res) => {
+  const { order_token, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+  const [body, sig] = String(order_token || '').split('.');
+  if (!body || !sig || !safeEq(sig, hmac(body))) {
+    return res.status(400).json({ error: 'Invalid order' });
+  }
+
+  let order;
+  try {
+    order = JSON.parse(Buffer.from(body, 'base64url').toString());
+  } catch {
+    return res.status(400).json({ error: 'Invalid order' });
+  }
+
+  if (order.exp < Date.now() || order.user_id !== req.session.user.id || order.id !== razorpay_order_id) {
+    return res.status(400).json({ error: 'Order expired or mismatched' });
+  }
+  if (!safeEq(razorpay_signature, hmac(`${razorpay_order_id}|${razorpay_payment_id}`))) {
+    return res.status(400).json({ error: 'Payment signature verification failed' });
   }
 
   try {
-    const [[drive]] = await pool.query(`SELECT drive_id FROM donation_drives WHERE drive_id = ?`, [drive_id]);
-    if (!drive) return res.status(404).json({ error: 'Drive not found' });
-
     await pool.query(
-      `INSERT INTO donations (drive_id, user_id, amount, status) VALUES (?, ?, ?, 'completed')`,
-      [drive_id, req.session.user.id, parsedAmount]
+      `INSERT INTO donations (drive_id, user_id, amount, status, payment_ref)
+       VALUES (?, ?, ?, 'simulated', ?)`,
+      [order.drive_id, order.user_id, order.amount, razorpay_payment_id]
     );
-
-    // Return the freshly computed totals so the frontend can update its
-    // progress bar/donor count immediately, matching the old verify-payment
-    // response shape (raised_amount, donor_count) that DriveDetail.jsx reads.
-    const [[updated]] = await pool.query(`${DRIVE_SELECT} WHERE dd.drive_id = ?`, [drive_id]);
+    const [[updated]] = await pool.query(`${DRIVE_SELECT} WHERE dd.drive_id = ?`, [order.drive_id]);
     res.json({ success: true, raised_amount: updated.raised_amount, donor_count: updated.donor_count });
   } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Payment already recorded' });
     res.status(500).json({ error: err.message });
   }
 });

@@ -4,6 +4,7 @@ import API from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import { getImageUrl } from '../../utils/imageUrl';
 import ExpenseBreakdown from '../../components/ExpenseBreakdown';
+import MockCheckout from '../../components/MockCheckout';
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
@@ -115,6 +116,7 @@ function DonationModal({ drive, user, onClose, onSuccess }) {
   const [name,  setName]      = useState(user?.name || '');
   const [email, setEmail]     = useState(user?.email || '');
   const inputRef = useRef(null);
+  const [order, setOrder] = useState(null);
 
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 120); }, []);
   useEffect(() => {
@@ -128,24 +130,31 @@ function DonationModal({ drive, user, onClose, onSuccess }) {
     if (!user) { setErrorMsg('Please sign in before donating.'); return; }
 
     setErrorMsg('');
-    setStep('paying');
-
+    setStep('paying'); // keep 'paying' so the amount form stays visible behind the popup
     try {
-      // Razorpay's create-order/verify-payment round trip has been removed —
-      // donations are recorded directly. /donate inserts the row and
-      // returns the freshly recomputed raised_amount/donor_count for this
-      // drive (both are always computed live from SUM(donations.amount),
-      // never stored), so onSuccess still gets the same shape it used to.
-      const { data } = await API.post('/donations/donate', {
-        drive_id: drive.id,
-        amount: amt,
-      });
-      onSuccess(data, amt);
-      setStep('success');
+      const { data } = await API.post('/donations/create-order', { drive_id: drive.id, amount: amt });
+      setOrder(data); // setting the order opens the checkout popup
     } catch (e) {
-      setErrorMsg(e.response?.data?.error || 'Something went wrong while recording the donation.');
+      setErrorMsg(e.response?.data?.error || 'Could not start the payment.');
       setStep('pick');
     }
+  };
+
+  const handlePaid = async (gw) => {
+    // If this throws, MockCheckout catches it and shows the error inside the popup.
+    const { data } = await API.post('/donations/verify-payment', {
+      order_token: order.order_token,
+      ...gw,
+    });
+    const paid = order.amount;
+    setOrder(null);
+    onSuccess(data, paid);
+    setStep('success');
+  };
+
+  const handleCancel = () => {
+    setOrder(null);
+    setStep('pick');
   };
 
   const impact = amount && Number(amount) >= 100 ? impactMsg(Number(amount)) : null;
@@ -269,7 +278,7 @@ function DonationModal({ drive, user, onClose, onSuccess }) {
               </button>
 
               <p className="text-center text-xs text-forest-400 dark:text-forest-500">
-                🔒 Secure checkout · Test mode
+                🔒 Simulated Razorpay checkout · Test mode
               </p>
             </div>
           )}
@@ -313,6 +322,16 @@ function DonationModal({ drive, user, onClose, onSuccess }) {
           )}
         </div>
       </div>
+
+      {order && (
+        <MockCheckout
+          order={order}
+          drive={drive}
+          user={user}
+          onPaid={handlePaid}
+          onCancel={handleCancel}
+        />
+      )}
     </div>
   );
 }

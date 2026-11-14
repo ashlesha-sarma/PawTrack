@@ -319,6 +319,7 @@ async function initDb() {
     await seedDonationDrives(conn);
 
     await addColumnIfMissing(conn, 'medical_records', 'report_path', 'VARCHAR(255) NULL');
+    await addColumnIfMissing(conn, 'donations', 'payment_ref', 'VARCHAR(64) NULL UNIQUE');
 
     // ---------------------------------------------------------------------------
     // Reversible migration: make donation_drives.deadline nullable.
