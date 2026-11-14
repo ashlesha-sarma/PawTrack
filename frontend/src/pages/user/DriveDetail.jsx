@@ -512,12 +512,6 @@ export default function DriveDetail() {
                         <><span className="h-1.5 w-1.5 rounded-full bg-terra-500 animate-pulse" />Active campaign</>
                       ) : 'Closed campaign'}
                     </span>
-                    {daysLeft !== null && isActive && (
-                      <span className={`badge ${daysLeft <= 7 ? 'badge-red' : 'badge-amber'}`}>
-                        <ClockIcon className="h-3.5 w-3.5" />
-                        {daysLeft === 0 ? 'Final day!' : `${daysLeft} days remaining`}
-                      </span>
-                    )}
                   </div>
 
                   <div>
