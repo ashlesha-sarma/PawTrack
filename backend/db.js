@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS medical_records (
   record_date DATE NOT NULL,
   vaccine_name VARCHAR(150),
   next_due_date DATE,
+  report_path VARCHAR(255),
   CONSTRAINT fk_medical_animal FOREIGN KEY (animal_id) REFERENCES animals(animal_id) ON DELETE RESTRICT,
   CONSTRAINT fk_medical_recorded_by FOREIGN KEY (recorded_by) REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -285,6 +286,24 @@ async function seedDonationDrives(conn) {
   );
 }
 
+// Add a column only if it does not already exist. Idempotent and non-fatal:
+// safe to run on every startup (local, Render cold-starts, Aiven).
+async function addColumnIfMissing(conn, table, column, definition) {
+  try {
+    const [[row]] = await conn.query(
+      `SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+      [table, column]
+    );
+    if (Number(row.c) === 0) {
+      await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+      console.log(`[db] added ${table}.${column}`);
+    }
+  } catch (e) {
+    console.error(`[db] migration warning (${table}.${column}):`, e.message);
+  }
+}
+
 async function initDb() {
   const conn = await pool.getConnection();
   try {
@@ -298,6 +317,8 @@ async function initDb() {
     await seedUsers(conn);
     await seedAnimals(conn);
     await seedDonationDrives(conn);
+
+    await addColumnIfMissing(conn, 'medical_records', 'report_path', 'VARCHAR(255) NULL');
 
     // ---------------------------------------------------------------------------
     // Reversible migration: make donation_drives.deadline nullable.

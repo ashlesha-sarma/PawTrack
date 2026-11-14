@@ -40,9 +40,7 @@ const isModerator = (req) => !!(req.session && req.session.user && req.session.u
 //   current_status = 'available'                  -> up_for_adoption: 'Up for adoption',   health_status: 'Healthy'
 //   current_status = 'adopted'                    -> up_for_adoption: 'Adopted',            health_status: 'Healthy'
 //
-// vaccination_status can no longer be derived from `animals` at all (it now
-// lives in medical_records as record_type='vaccination' rows) — we default
-// it to 'Not vaccinated' so old badges simply stay hidden rather than lying.
+// vaccination_status is derived from medical_records (see vaccination_current subquery).
 //
 // location_found: populated by the GET queries via a correlated subquery that
 // fetches the location of the earliest sighting. NULL when no sightings exist.
@@ -80,7 +78,7 @@ function withLegacyFields(row) {
     id: row.animal_id,
     up_for_adoption,
     health_status,
-    vaccination_status: 'Not vaccinated',
+    vaccination_status: row.vaccination_current > 0 ? 'Vaccinated' : 'Not vaccinated',
     // location_found comes from the correlated subquery in the SELECT — pass
     // it through unchanged. Falls back to null if no sightings exist.
     location_found: row.location_found || null,
@@ -105,7 +103,14 @@ router.get('/', async (req, res) => {
            FROM   foster_placements fp
            WHERE  fp.animal_id = a.animal_id
              AND  fp.status = 'active'
-         ) AS has_active_foster
+         ) AS has_active_foster,
+         (
+           SELECT COUNT(*)
+           FROM   medical_records mr
+           WHERE  mr.animal_id = a.animal_id
+             AND  mr.record_type = 'vaccination'
+             AND  (mr.next_due_date IS NULL OR mr.next_due_date >= CURDATE())
+         ) AS vaccination_current
        FROM animals a
        ${visibility}
        ORDER BY a.created_at DESC`
@@ -133,7 +138,14 @@ router.get('/:id', async (req, res) => {
            FROM   foster_placements fp
            WHERE  fp.animal_id = a.animal_id
              AND  fp.status = 'active'
-         ) AS has_active_foster
+         ) AS has_active_foster,
+         (
+           SELECT COUNT(*)
+           FROM   medical_records mr
+           WHERE  mr.animal_id = a.animal_id
+             AND  mr.record_type = 'vaccination'
+             AND  (mr.next_due_date IS NULL OR mr.next_due_date >= CURDATE())
+         ) AS vaccination_current
        FROM animals a
        WHERE a.animal_id = ? ${visibility}`,
       [req.params.id]

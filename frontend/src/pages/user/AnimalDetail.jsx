@@ -231,6 +231,17 @@ export default function AnimalDetail() {
                             {m.next_due_date && <>Next due {new Date(m.next_due_date).toLocaleDateString('en-IN')}</>}
                           </p>
                         )}
+                        {m.vet_name && <p className="mt-1 text-xs text-forest-400">Vet: {m.vet_name}</p>}
+                        {m.report_path && (
+                          <a
+                            href={getImageUrl(m.report_path)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-block text-xs font-medium text-terra-600 hover:underline dark:text-terra-300"
+                          >
+                            View vet report
+                          </a>
+                        )}
                       </div>
                     </div>
                   ))}

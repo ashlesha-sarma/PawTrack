@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../../api/api';
 import { SkeletonStat } from '../../components/Skeleton';
+import VaccinationsDue from '../../components/VaccinationsDue';
 import {
   CheckCircleIcon,
   ClipboardIcon,
@@ -72,7 +73,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
-
+      <VaccinationsDue />
     </div>
   );
 }

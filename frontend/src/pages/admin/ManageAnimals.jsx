@@ -131,18 +131,29 @@ function SightingsTab({ animalId }) {
   );
 }
 
+const MEDICAL_TYPES = ['checkup', 'treatment', 'vaccination'];
+const MEDICAL_BADGE = { checkup: 'badge-blue', treatment: 'badge-amber', vaccination: 'badge-orange' };
+const MAX_REPORT_BYTES = 5 * 1024 * 1024;
+const emptyMedicalForm = () => ({
+  record_type: 'checkup',
+  record_date: '',
+  vet_name: '',
+  condition_notes: '',
+  vaccine_name: '',
+  next_due_date: '',
+});
+
 function MedicalTab({ animalId }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({
-    record_type: 'checkup',
-    condition_notes: '',
-    vet_name: '',
-    record_date: '',
-    vaccine_name: '',
-    next_due_date: '',
-  });
-  const [msg, setMsg] = useState('');
+  const [form, setForm] = useState(emptyMedicalForm());
+  const [reportFile, setReportFile] = useState(null);
+  const [fileKey, setFileKey] = useState(0); // bump to reset the file input
+  const [editId, setEditId] = useState(null);
+  const [existingReport, setExistingReport] = useState(null);
+  const [removeReport, setRemoveReport] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState({ text: '', ok: true });
 
   const fetchRows = () => {
     setLoading(true);
@@ -153,71 +164,182 @@ function MedicalTab({ animalId }) {
 
   useEffect(() => { fetchRows(); }, [animalId]);
 
+  const setField = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const isVaccination = form.record_type === 'vaccination';
+
+  const resetForm = () => {
+    setForm(emptyMedicalForm());
+    setReportFile(null);
+    setFileKey((k) => k + 1);
+    setEditId(null);
+    setExistingReport(null);
+    setRemoveReport(false);
+  };
+
+  const onReportChange = (e) => {
+    const file = e.target.files[0] || null;
+    if (file && file.size > MAX_REPORT_BYTES) {
+      setMsg({ text: 'The vet report must be 5 MB or smaller.', ok: false });
+      setReportFile(null);
+      setFileKey((k) => k + 1);
+      return;
+    }
+    setMsg({ text: '', ok: true });
+    setReportFile(file);
+    setRemoveReport(false);
+  };
+
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.record_date) { setMsg('Record date is required.'); return; }
+    setMsg({ text: '', ok: true });
+    if (!form.record_date) { setMsg({ text: 'Record date is required.', ok: false }); return; }
+    if (isVaccination && !form.vaccine_name.trim()) { setMsg({ text: 'Vaccine name is required.', ok: false }); return; }
+
+    const fd = new FormData();
+    if (!editId) fd.append('animal_id', animalId);
+    fd.append('record_type', form.record_type);
+    fd.append('record_date', form.record_date);
+    fd.append('vet_name', form.vet_name);
+    fd.append('condition_notes', form.condition_notes);
+    if (isVaccination) {
+      fd.append('vaccine_name', form.vaccine_name);
+      fd.append('next_due_date', form.next_due_date);
+    }
+    if (reportFile) fd.append('report', reportFile);
+    if (editId && removeReport && !reportFile) fd.append('remove_report', 'true');
+
+    setSaving(true);
     try {
-      await API.post('/medical', { animal_id: animalId, ...form });
-      setForm({ record_type: 'checkup', condition_notes: '', vet_name: '', record_date: '', vaccine_name: '', next_due_date: '' });
-      setMsg('');
+      const cfg = { headers: { 'Content-Type': 'multipart/form-data' } };
+      if (editId) {
+        await API.put(`/medical/${editId}`, fd, cfg);
+        setMsg({ text: 'Medical record updated.', ok: true });
+      } else {
+        await API.post('/medical', fd, cfg);
+        setMsg({ text: 'Medical record added.', ok: true });
+      }
+      resetForm();
       fetchRows();
-    } catch {
-      setMsg('Could not save medical record.');
+    } catch (err) {
+      setMsg({ text: err.response?.data?.error || 'Could not save medical record.', ok: false });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const isVaccination = form.record_type === 'vaccination';
+  const startEdit = (m) => {
+    setEditId(m.record_id);
+    setForm({
+      record_type: m.record_type,
+      record_date: (m.record_date || '').slice(0, 10),
+      vet_name: m.vet_name || '',
+      condition_notes: m.condition_notes || '',
+      vaccine_name: m.vaccine_name || '',
+      next_due_date: (m.next_due_date || '').slice(0, 10),
+    });
+    setExistingReport(m.report_path || null);
+    setRemoveReport(false);
+    setReportFile(null);
+    setFileKey((k) => k + 1);
+    setMsg({ text: '', ok: true });
+  };
+
+  const remove = async (id) => {
+    if (!window.confirm('Delete this medical record? Its vet report will also be removed.')) return;
+    try {
+      await API.delete(`/medical/${id}`);
+      if (editId === id) resetForm();
+      setMsg({ text: 'Medical record deleted.', ok: true });
+      fetchRows();
+    } catch (err) {
+      setMsg({ text: err.response?.data?.error || 'Could not delete medical record.', ok: false });
+    }
+  };
 
   return (
     <div className="space-y-4">
       <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <select
-          className="input"
-          value={form.record_type}
-          onChange={(e) => setForm((f) => ({ ...f, record_type: e.target.value }))}
-        >
-          <option value="checkup">Checkup</option>
-          <option value="treatment">Treatment</option>
-          <option value="vaccination">Vaccination</option>
-        </select>
-        <input
-          type="date"
-          className="input"
-          value={form.record_date}
-          onChange={(e) => setForm((f) => ({ ...f, record_date: e.target.value }))}
-        />
-        <input
-          className="input"
-          placeholder="Vet name"
-          value={form.vet_name}
-          onChange={(e) => setForm((f) => ({ ...f, vet_name: e.target.value }))}
-        />
-        <input
-          className="input lg:col-span-1"
-          placeholder="Notes"
-          value={form.condition_notes}
-          onChange={(e) => setForm((f) => ({ ...f, condition_notes: e.target.value }))}
-        />
+        <div>
+          <label className="label">Type</label>
+          <select className="input" value={form.record_type} onChange={setField('record_type')}>
+            {MEDICAL_TYPES.map((t) => (
+              <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="label">Date *</label>
+          <input type="date" className="input" value={form.record_date} onChange={setField('record_date')} />
+        </div>
+        <div>
+          <label className="label">Vet name</label>
+          <input className="input" placeholder="Vet name" value={form.vet_name} onChange={setField('vet_name')} />
+        </div>
+        <div>
+          <label className="label">Notes</label>
+          <input className="input" placeholder="Condition / treatment notes" value={form.condition_notes} onChange={setField('condition_notes')} />
+        </div>
+
         {isVaccination && (
           <>
-            <input
-              className="input"
-              placeholder="Vaccine name"
-              value={form.vaccine_name}
-              onChange={(e) => setForm((f) => ({ ...f, vaccine_name: e.target.value }))}
-            />
-            <input
-              type="date"
-              className="input"
-              placeholder="Next due date"
-              value={form.next_due_date}
-              onChange={(e) => setForm((f) => ({ ...f, next_due_date: e.target.value }))}
-            />
+            <div>
+              <label className="label">Vaccine name *</label>
+              <input className="input" placeholder="e.g. Rabies" value={form.vaccine_name} onChange={setField('vaccine_name')} />
+            </div>
+            <div>
+              <label className="label">Next due date</label>
+              <input type="date" className="input" value={form.next_due_date} onChange={setField('next_due_date')} />
+            </div>
           </>
         )}
-        <button type="submit" className="btn-primary btn-sm">Add record</button>
+
+        <div className="sm:col-span-2">
+          <label className="label">Vet report (PDF, JPG, PNG or WebP, max 5 MB)</label>
+          <input
+            key={fileKey}
+            type="file"
+            accept="application/pdf,image/jpeg,image/png,image/webp"
+            onChange={onReportChange}
+            className="input cursor-pointer py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-terra-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-terra-700 hover:file:bg-terra-200"
+          />
+          {editId && existingReport && !reportFile && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs">
+              {!removeReport ? (
+                <>
+                  <a href={getImageUrl(existingReport)} target="_blank" rel="noopener noreferrer" className="font-medium text-terra-600 hover:underline dark:text-terra-300">
+                    Current report
+                  </a>
+                  <button type="button" onClick={() => setRemoveReport(true)} className="font-medium text-red-600 hover:underline dark:text-red-400">
+                    Remove report
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="text-red-600 dark:text-red-400">Report will be removed on save.</span>
+                  <button type="button" onClick={() => setRemoveReport(false)} className="font-medium text-forest-600 hover:underline dark:text-forest-300">
+                    Undo
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-end gap-2 sm:col-span-2">
+          <button type="submit" disabled={saving} className={`btn-primary btn-sm flex-1 ${saving ? 'opacity-70' : ''}`}>
+            {saving ? 'Saving' : editId ? 'Update record' : 'Add record'}
+          </button>
+          {editId && (
+            <button type="button" onClick={resetForm} className="btn-ghost btn-sm">Cancel</button>
+          )}
+        </div>
       </form>
-      {msg && <p className="text-xs text-red-600 dark:text-red-400">{msg}</p>}
+
+      {msg.text && (
+        <p className={`text-xs ${msg.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+          {msg.text}
+        </p>
+      )}
 
       {loading ? (
         <div className="skeleton h-10 rounded-lg" />
@@ -228,8 +350,19 @@ function MedicalTab({ animalId }) {
           {rows.map((m) => (
             <div key={m.record_id} className="surface-muted rounded-xl p-3 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="badge-blue capitalize">{m.record_type}</span>
-                <span className="text-xs text-forest-400">{new Date(m.record_date).toLocaleDateString('en-IN')}</span>
+                <div className="flex items-center gap-2">
+                  <span className={`${MEDICAL_BADGE[m.record_type] || 'badge-blue'} capitalize`}>{m.record_type}</span>
+                  <span className="text-xs text-forest-400">{new Date(m.record_date).toLocaleDateString('en-IN')}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => startEdit(m)} className="btn-ghost btn-sm px-2 py-1 text-xs">Edit</button>
+                  <button
+                    onClick={() => remove(m.record_id)}
+                    className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 dark:border-red-900 dark:bg-red-900/20 dark:text-red-400"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
               {m.condition_notes && <p className="mt-1 text-forest-600 dark:text-forest-300">{m.condition_notes}</p>}
               {m.vet_name && <p className="mt-1 text-xs text-forest-400">Vet: {m.vet_name}</p>}
@@ -239,6 +372,16 @@ function MedicalTab({ animalId }) {
                   {m.vaccine_name && m.next_due_date && ' · '}
                   {m.next_due_date && <>Next due: {new Date(m.next_due_date).toLocaleDateString('en-IN')}</>}
                 </p>
+              )}
+              {m.report_path && (
+                <a
+                  href={getImageUrl(m.report_path)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block text-xs font-medium text-terra-600 hover:underline dark:text-terra-300"
+                >
+                  View vet report
+                </a>
               )}
             </div>
           ))}

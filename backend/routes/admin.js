@@ -33,10 +33,18 @@ router.get('/stats', ensureAdmin, async (req, res) => {
          WHERE a.current_status = 'fostered' OR fp.placement_id IS NOT NULL`
       ),
       pool.query(
-        `SELECT COUNT(*) AS total FROM medical_records
-         WHERE record_type = 'vaccination'
-           AND next_due_date IS NOT NULL
-           AND next_due_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)`
+        `SELECT COUNT(*) AS total FROM medical_records m
+         WHERE m.record_type = 'vaccination'
+           AND m.next_due_date IS NOT NULL
+           AND m.next_due_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+           AND NOT EXISTS (
+             SELECT 1 FROM medical_records m2
+             WHERE m2.animal_id = m.animal_id
+               AND m2.record_type = 'vaccination'
+               AND m2.vaccine_name <=> m.vaccine_name
+               AND (m2.record_date > m.record_date
+                    OR (m2.record_date = m.record_date AND m2.record_id > m.record_id))
+           )`
       ),
       pool.query(`SELECT COALESCE(SUM(amount), 0) AS total FROM expenses`),
       pool.query(`SELECT COUNT(*) AS total FROM sightings WHERE verified = 0`),
