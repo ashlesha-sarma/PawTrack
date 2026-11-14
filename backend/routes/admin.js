@@ -3,27 +3,8 @@ const router = express.Router();
 const pool = require('../db');
 const { ensureAdmin } = require('../middleware/auth');
 
-// ---------------------------------------------------------------------------
-// GET /stats (ensureAdmin)
-//
-// Rewritten from a 6-level nested-callback pyramid to parallel async/await
-// queries via Promise.all — same data, same total round trips, much easier
-// to read and extend.
-//
-// Stats dropped: total_posts (posts feature removed entirely).
-// Stats added, all enabled by the new schema:
-//   - animals_by_status: counts grouped by current_status (replaces the old
-//     single up_for_adoption / needs_treatment text-match counts with the
-//     real 5-value status breakdown)
-//   - active_foster_placements: COUNT from foster_placements WHERE status='active'
-//   - vaccinations_due_count: reuses the same due-date logic as
-//     GET /medical/vaccinations/due (overdue or due within 30 days)
-//   - total_expenses: SUM(expenses.amount) across all drives
-//
-// available_animals and needs_treatment are kept (derived from
-// animals_by_status) purely so AdminDashboard.jsx's existing stat cards for
-// those two values keep working without a rewrite.
-// ---------------------------------------------------------------------------
+// GET /stats (ensureAdmin) — dashboard numbers, run in parallel.
+// New: unverified_sightings (sightings waiting for moderator review).
 router.get('/stats', ensureAdmin, async (req, res) => {
   try {
     const [
@@ -36,6 +17,7 @@ router.get('/stats', ensureAdmin, async (req, res) => {
       [[{ total: active_foster_placements }]],
       [[{ total: vaccinations_due_count }]],
       [[{ total: total_expenses }]],
+      [[{ total: unverified_sightings }]],
     ] = await Promise.all([
       pool.query(`SELECT COUNT(*) AS total FROM animals`),
       pool.query(`SELECT current_status, COUNT(*) AS total FROM animals GROUP BY current_status`),
@@ -57,6 +39,7 @@ router.get('/stats', ensureAdmin, async (req, res) => {
            AND next_due_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)`
       ),
       pool.query(`SELECT COALESCE(SUM(amount), 0) AS total FROM expenses`),
+      pool.query(`SELECT COUNT(*) AS total FROM sightings WHERE verified = 0`),
     ]);
 
     const animals_by_status = {};
@@ -74,15 +57,14 @@ router.get('/stats', ensureAdmin, async (req, res) => {
       active_foster_placements,
       vaccinations_due_count,
       total_expenses,
+      unverified_sightings,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /recent-activity — unchanged shape (type/date/actor/subject), rewritten
-// for the new column names (user_id, animal_id, drive_id are now the real
-// PKs rather than "id").
+// GET /recent-activity — unchanged.
 router.get('/recent-activity', ensureAdmin, async (req, res) => {
   try {
     const [rows] = await pool.query(

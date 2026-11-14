@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import API from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import { getImageUrl } from '../../utils/imageUrl';
+import ExpenseBreakdown from '../../components/ExpenseBreakdown';
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
@@ -367,11 +368,13 @@ export default function DriveDetail() {
   // both computed at query time (spent = SUM(expenses.amount), remaining =
   // raised - spent), never stored. Fetched independently of fetchDrive so a
   // slow/failed expenses lookup never blocks the main campaign page.
-  useEffect(() => {
-    API.get(`/expenses/${id}`)
-      .then((res) => setExpenseSummary({ spent: res.data.spent, remaining: res.data.remaining }))
+  const fetchExpenses = useCallback(() => {
+    return API.get(`/expenses/${id}`)
+      .then((res) => setExpenseSummary(res.data)) // full payload: expenses, raised, spent, remaining, by_category
       .catch(() => setExpenseSummary(null));
   }, [id]);
+
+  useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
 
   useEffect(() => { fetchDrive(); }, [fetchDrive]);
 
@@ -400,8 +403,8 @@ export default function DriveDetail() {
     setConfetti(true);
     setTimeout(() => setConfetti(false), 2800);
     showToast('success', `You donated ₹${Number(donatedAmt).toLocaleString('en-IN')} — thank you! 🐾`);
-    setTimeout(() => fetchDrive(), 1500);
-  }, [user, fetchDrive, showToast]);
+    setTimeout(() => { fetchDrive(); fetchExpenses(); }, 1500);
+  }, [user, fetchDrive, fetchExpenses, showToast]);
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
@@ -529,32 +532,7 @@ export default function DriveDetail() {
               </div>
 
               {expenseSummary && (
-                <div className="card p-6">
-                  <h2 className="text-xl text-forest-950 dark:text-cream-100">Transparency</h2>
-                  <p className="mt-1 text-sm text-forest-500 dark:text-forest-400">
-                    Where this campaign's funds stand right now.
-                  </p>
-                  <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                    <div>
-                      <p className="text-lg font-semibold text-forest-950 dark:text-cream-100">
-                        ₹{Number(drive.raised_amount).toLocaleString('en-IN')}
-                      </p>
-                      <p className="text-xs text-forest-500 dark:text-forest-400">Raised</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-semibold text-forest-950 dark:text-cream-100">
-                        ₹{Number(expenseSummary.spent).toLocaleString('en-IN')}
-                      </p>
-                      <p className="text-xs text-forest-500 dark:text-forest-400">Spent</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-semibold text-forest-950 dark:text-cream-100">
-                        ₹{Number(expenseSummary.remaining).toLocaleString('en-IN')}
-                      </p>
-                      <p className="text-xs text-forest-500 dark:text-forest-400">Remaining</p>
-                    </div>
-                  </div>
-                </div>
+                <ExpenseBreakdown summary={expenseSummary} raised={drive.raised_amount} />
               )}
 
 

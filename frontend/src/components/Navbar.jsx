@@ -47,6 +47,7 @@ export default function Navbar() {
   const navLinks = [
     { to: '/home/animals', label: 'Animals' },
     { to: '/home/donations', label: 'Support' },
+    { to: '/home/report-sighting', label: 'Report Sighting' },
   ];
 
   return (

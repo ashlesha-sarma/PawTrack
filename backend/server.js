@@ -13,8 +13,7 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
-  // Production frontend on Render — hardcoded so CORS works even if the
-  // FRONTEND_URL env var is not set in the Render dashboard.
+  // Production frontend on Render — hardcoded so CORS works 
   'https://pawtrack-frontend.onrender.com',
   // Dynamic override: set FRONTEND_URL in the Render dashboard if you ever
   // rename the frontend service or move to a custom domain.
@@ -60,6 +59,30 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
   }
 }));
+
+// Serve photos that were stored inside MySQL (sighting report photos).
+// Path format: /uploads/db/<image_id>. Registered BEFORE express.static so it
+// takes priority. The content type comes from the verified file signature that
+// was checked at upload time, and nosniff stops browsers from guessing.
+app.get('/uploads/db/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(404).end();
+  try {
+    const [[row]] = await pool.query(
+      `SELECT mime_type, data FROM uploaded_images WHERE image_id = ?`,
+      [id]
+    );
+    if (!row) return res.status(404).end();
+    res.setHeader('Content-Type', row.mime_type);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(row.data);
+  } catch (err) {
+    console.error('[uploads/db]', err.message);
+    res.status(500).end();
+  }
+});
 
 // Serve uploaded animal/drive images. The setHeaders callback adds the
 // correct MIME type for AVIF files — Express's built-in mime database

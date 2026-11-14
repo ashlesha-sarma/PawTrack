@@ -7,6 +7,7 @@ import {
   ClipboardIcon,
   HeartIcon,
   LogoMark,
+  MapPinIcon,
   MenuIcon,
   MoonIcon,
   PawIcon,
@@ -20,6 +21,7 @@ const navItems = [
   { to: '/admin/manage-animals', icon: PawIcon, label: 'Animals' },
   { to: '/admin/manage-drives', icon: HeartIcon, label: 'Donations' },
   { to: '/admin/requests', icon: ClipboardIcon, label: 'Requests' },
+  { to: '/admin/sightings', icon: MapPinIcon, label: 'Sightings' },
 ];
 
 export default function AdminLayout() {

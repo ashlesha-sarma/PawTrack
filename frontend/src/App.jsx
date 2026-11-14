@@ -17,11 +17,13 @@ import DonateForm   from './pages/user/DonateForm';
 import Login        from './pages/user/Login';
 import Register     from './pages/user/Register';
 import Profile      from './pages/user/Profile';
+import ReportSighting from './pages/user/ReportSighting';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ManageAnimals  from './pages/admin/ManageAnimals';
 import ManageDrives   from './pages/admin/ManageDrives';
 import Requests       from './pages/admin/Requests';
+import Sightings      from './pages/admin/Sightings';
 import AdminLogin     from './pages/admin/AdminLogin';
 
 export default function App() {
@@ -46,6 +48,7 @@ export default function App() {
             <Route path="donations"    element={<Donations />} />
             <Route path="donations/:id" element={<DriveDetail />} />
             <Route path="donate/:id"   element={<DonateForm />} />
+            <Route path="report-sighting" element={<ReportSighting />} />
             <Route path="profile"      element={<Profile />} />
           </Route>
 
@@ -56,6 +59,7 @@ export default function App() {
             <Route path="manage-animals" element={<ManageAnimals />} />
             <Route path="manage-drives"  element={<ManageDrives />} />
             <Route path="requests"       element={<Requests />} />
+            <Route path="sightings"      element={<Sightings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

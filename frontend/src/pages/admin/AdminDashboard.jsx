@@ -7,6 +7,7 @@ import {
   ClipboardIcon,
   HeartIcon,
   HomeIcon,
+  MapPinIcon,
   PawIcon,
   StethoscopeIcon,
   SyringeIcon,
@@ -53,7 +54,7 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {loading ? (
-          Array.from({ length: 10 }).map((_, i) => <SkeletonStat key={i} />)
+          Array.from({ length: 11 }).map((_, i) => <SkeletonStat key={i} />)
         ) : (
           <>
             <StatCard icon={PawIcon} label="Total animals" value={stats?.total_animals} color="bg-terra-100 dark:bg-terra-900/30 text-terra-500" to="/admin/manage-animals" />
@@ -66,6 +67,7 @@ export default function AdminDashboard() {
             <StatCard icon={HomeIcon} label="Active fosters" value={stats?.active_foster_placements} color="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600" />
             <StatCard icon={SyringeIcon} label="Vaccinations due" value={stats?.vaccinations_due_count} color="bg-amber-50 dark:bg-amber-900/20 text-amber-700" sub="Due in 30 days or overdue" />
             <StatCard icon={HeartIcon} label="Total expenses" value={`Rs. ${Number(stats?.total_expenses || 0).toLocaleString()}`} color="bg-purple-100 dark:bg-purple-900/30 text-purple-600" to="/admin/manage-drives" />
+            <StatCard icon={MapPinIcon} label="Unverified sightings" value={stats?.unverified_sightings} color="bg-orange-100 dark:bg-orange-900/30 text-orange-600" to="/admin/sightings" sub="Awaiting review" />
           </>
         )}
       </div>

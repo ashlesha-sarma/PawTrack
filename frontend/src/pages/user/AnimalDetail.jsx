@@ -385,6 +385,11 @@ export default function AnimalDetail() {
                 </div>
               )}
 
+<Link to={`/home/report-sighting?animal=${animal.id}`} className="btn-ghost mt-4 w-full justify-center">
+                <MapPinIcon className="h-4 w-4" />
+                Report a sighting of {animal.name || 'this animal'}
+              </Link>
+
               <Link to="/home/animals" className="btn-ghost mt-4 w-full justify-center">
                 <ArrowLeftIcon className="h-4 w-4" />
                 Back to Animal Listings

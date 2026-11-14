@@ -180,6 +180,15 @@ CREATE TABLE IF NOT EXISTS expenses (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `;
 
+const CREATE_UPLOADED_IMAGES = `
+CREATE TABLE IF NOT EXISTS uploaded_images (
+  image_id INT AUTO_INCREMENT PRIMARY KEY,
+  mime_type VARCHAR(50) NOT NULL,
+  data MEDIUMBLOB NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+`;
+
 // Order matters: each table only references tables created before it.
 const TABLE_STATEMENTS = [
   ['users', CREATE_USERS],
@@ -191,12 +200,9 @@ const TABLE_STATEMENTS = [
   ['donation_drives', CREATE_DONATION_DRIVES],
   ['donations', CREATE_DONATIONS],
   ['expenses', CREATE_EXPENSES],
+  ['uploaded_images', CREATE_UPLOADED_IMAGES],
 ];
 
-// ---------------------------------------------------------------------------
-// Seed data — adapted from the original CampusPaws db.js seed pattern.
-// Posts/post_likes seeding is dropped entirely (those tables no longer exist).
-// ---------------------------------------------------------------------------
 
 async function seedUsers(conn) {
   const [[adminRow]] = await conn.query(`SELECT user_id FROM users WHERE email = ?`, ['admin@campuspaws.test']);
@@ -325,6 +331,28 @@ async function initDb() {
       // A failure here must not crash startup — existing functionality is
       // unaffected because the route and frontend no longer use deadline.
       console.error('[db] migration warning: could not modify donation_drives.deadline:', migErr.message);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Migration: sightings.photo_path (photo attached to a sighting report).
+    // Idempotent: checks information_schema first, so repeated restarts skip it.
+    // ---------------------------------------------------------------------------
+    try {
+      const [[colInfo]] = await conn.query(
+        `SELECT COUNT(*) AS cnt
+         FROM   information_schema.COLUMNS
+         WHERE  TABLE_SCHEMA = DATABASE()
+           AND  TABLE_NAME   = 'sightings'
+           AND  COLUMN_NAME  = 'photo_path'`
+      );
+      if (Number(colInfo.cnt) === 0) {
+        await conn.query(`ALTER TABLE sightings ADD COLUMN photo_path VARCHAR(255) NULL AFTER notes`);
+        console.log('[db] sightings.photo_path column added');
+      } else {
+        console.log('[db] sightings.photo_path already present, skipped');
+      }
+    } catch (migErr) {
+      console.error('[db] migration warning: could not add sightings.photo_path:', migErr.message);
     }
 
     console.log('[db] MySQL schema ready and seed data checked.');

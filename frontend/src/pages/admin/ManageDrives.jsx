@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import API from '../../api/api';
 import { getImageUrl } from '../../utils/imageUrl';
+import ExpensePanel from '../../components/ExpensePanel';
 
 const empty = { title: '', description: '', target_amount: '', deadline: '', existing_photo: '' };
 
@@ -30,6 +31,7 @@ export default function ManageDrives() {
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [recentByDrive, setRecentByDrive] = useState({});
+  const [expenseOpenId, setExpenseOpenId] = useState(null);
 
   const fetchAll = useCallback(() => {
     setLoading(true);
@@ -293,6 +295,12 @@ export default function ManageDrives() {
                       <button onClick={() => startEdit(drive)} className="btn-ghost btn-sm px-3 py-1.5 text-xs">
                         Edit
                       </button>
+                      <button
+                        onClick={() => setExpenseOpenId((cur) => (cur === drive.id ? null : drive.id))}
+                        className="rounded-xl border border-cream-300 bg-cream-50 px-3 py-1.5 text-xs font-medium text-forest-600 hover:bg-cream-100 dark:border-forest-700 dark:bg-forest-800 dark:text-forest-300"
+                      >
+                        {expenseOpenId === drive.id ? 'Hide expenses' : 'Expenses'}
+                      </button>
                       {drive.is_active ? (
                         <button
                           onClick={() => closeDrive(drive.id)}
@@ -311,6 +319,8 @@ export default function ManageDrives() {
                     </div>
                   </div>
                 </div>
+
+                {expenseOpenId === drive.id && <ExpensePanel driveId={drive.id} />}
               </div>
             );
           })}

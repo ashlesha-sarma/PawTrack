@@ -7,6 +7,7 @@ import {
   ClipboardIcon,
   HeartIcon,
   LogoutIcon,
+  MapPinIcon,
   PawIcon,
   SettingsIcon,
 } from '../../components/Icons';
@@ -17,11 +18,19 @@ const STATUS_STYLE = {
   Rejected: 'badge-red',
 };
 
+// Sighting report statuses (computed by GET /api/sightings/mine).
+const SIGHTING_STYLE = {
+  Pending: 'badge-amber',
+  Verified: 'badge-blue',
+  Assigned: 'badge-orange',
+};
+
 export default function Profile() {
   const { user, logout, loading: authLoading } = useAuth();
   const nav = useNavigate();
   const [requests, setRequests] = useState([]);
   const [donations, setDonations] = useState([]);
+  const [sightings, setSightings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,10 +42,15 @@ export default function Profile() {
       nav('/login');
       return;
     }
-    Promise.all([API.get('/adoptions/mine'), API.get('/donations/my-donations')])
-      .then(([r1, r2]) => {
+    Promise.all([
+      API.get('/adoptions/mine'),
+      API.get('/donations/my-donations'),
+      API.get('/sightings/mine').catch(() => ({ data: [] })),
+    ])
+      .then(([r1, r2, r3]) => {
         setRequests(r1.data || []);
         setDonations(r2.data || []);
+        setSightings(r3.data || []);
       })
       .finally(() => setLoading(false));
   }, [nav, user, authLoading]);
@@ -68,7 +82,7 @@ export default function Profile() {
                 {user.role === 'moderator' ? 'Administrator' : 'Student'}
               </span>
 
-              <div className="mt-6 grid grid-cols-2 gap-3 border-t border-cream-200 pt-5 dark:border-forest-800">
+              <div className="mt-6 grid grid-cols-3 gap-3 border-t border-cream-200 pt-5 dark:border-forest-800">
                 <div>
                   <p className="text-2xl font-semibold text-forest-950 dark:text-cream-100">{requests.length}</p>
                   <p className="mt-1 text-xs text-forest-500 dark:text-forest-400">Applications</p>
@@ -76,6 +90,10 @@ export default function Profile() {
                 <div>
                   <p className="text-2xl font-semibold text-forest-950 dark:text-cream-100">{donations.length}</p>
                   <p className="mt-1 text-xs text-forest-500 dark:text-forest-400">Donations</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold text-forest-950 dark:text-cream-100">{sightings.length}</p>
+                  <p className="mt-1 text-xs text-forest-500 dark:text-forest-400">Sightings</p>
                 </div>
               </div>
             </div>
@@ -91,6 +109,10 @@ export default function Profile() {
                 <Link to="/home/animals" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-forest-700 hover:bg-cream-50 dark:text-forest-300 dark:hover:bg-forest-800">
                   <PawIcon className="h-4 w-4" />
                   Animal Listings
+                </Link>
+                <Link to="/home/report-sighting" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-forest-700 hover:bg-cream-50 dark:text-forest-300 dark:hover:bg-forest-800">
+                  <MapPinIcon className="h-4 w-4" />
+                  Report a Sighting
                 </Link>
                 <Link to="/home/donations" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-forest-700 hover:bg-cream-50 dark:text-forest-300 dark:hover:bg-forest-800">
                   <HeartIcon className="h-4 w-4" />
@@ -153,6 +175,63 @@ export default function Profile() {
                         <p className="mt-1 text-xs text-forest-400">{new Date(request.date).toLocaleDateString('en-IN')}</p>
                       </div>
                       <span className={`flex-shrink-0 ${STATUS_STYLE[request.status] || 'badge-amber'}`}>{request.status}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="card p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="stat-icon">
+                  <MapPinIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl text-forest-950 dark:text-cream-100">My sighting reports</h3>
+                  <p className="text-sm text-forest-500 dark:text-forest-400">Animals you have reported and where each report stands.</p>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="skeleton h-16 rounded-xl" />
+                  ))}
+                </div>
+              ) : sightings.length === 0 ? (
+                <div className="rounded-xl border border-cream-200 bg-cream-50 p-8 text-center dark:border-forest-800 dark:bg-forest-800/70">
+                  <p className="text-sm text-forest-500 dark:text-forest-400">You have not reported any sightings yet.</p>
+                  <Link to="/home/report-sighting" className="btn-primary btn-sm mt-4 inline-flex">
+                    Report a Sighting
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sightings.map((s) => (
+                    <div key={s.sighting_id} className="surface-muted flex items-center gap-4 rounded-xl p-3.5">
+                      {s.photo_path && (
+                        <img
+                          src={getImageUrl(s.photo_path)}
+                          alt=""
+                          className="h-12 w-12 flex-shrink-0 rounded-xl object-cover"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = '/placeholder.png';
+                          }}
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-forest-900 dark:text-cream-100">
+                          {s.animal_name || `Unnamed ${s.species}`}
+                        </p>
+                        <p className="truncate text-xs text-forest-500 dark:text-forest-400">{s.location}</p>
+                        <p className="mt-1 text-xs text-forest-400">
+                          {new Date(String(s.reported_at).replace(' ', 'T')).toLocaleDateString('en-IN')}
+                        </p>
+                      </div>
+                      <span className={`flex-shrink-0 ${SIGHTING_STYLE[s.status] || 'badge-amber'}`}>
+                        {s.status === 'Pending' ? 'Pending review' : s.status}
+                      </span>
                     </div>
                   ))}
                 </div>

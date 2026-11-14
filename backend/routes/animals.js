@@ -9,11 +9,20 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '..', 'uploads')),
   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/\s/g, '_'))
 });
+// Whitelist of safe raster formats. The old filter accepted every image/*
+// type, which includes image/svg+xml (SVG files can carry scripts).
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
 const imageFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) return cb(null, true);
-  cb(new Error('Only image files are allowed'), false);
+  if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) return cb(null, true);
+  cb(new Error('Only JPEG, PNG, WebP, AVIF or GIF images are allowed'), false);
 };
 const upload = multer({ storage, fileFilter: imageFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+
+// Animals created from a user's sighting report start as 'reported'. Those are
+// hidden from the public (visitors and normal users) until a moderator changes
+// their status. Moderators (session role) always see every animal, so the admin
+// screens that call these same endpoints keep working.
+const isModerator = (req) => !!(req.session && req.session.user && req.session.user.role === 'moderator');
 
 // ---------------------------------------------------------------------------
 // Backward-compatibility shim for the existing frontend.
@@ -81,6 +90,7 @@ function withLegacyFields(row) {
 
 router.get('/', async (req, res) => {
   try {
+    const visibility = isModerator(req) ? '' : `WHERE a.current_status <> 'reported'`;
     const [rows] = await pool.query(
       `SELECT a.*,
          (
@@ -97,6 +107,7 @@ router.get('/', async (req, res) => {
              AND  fp.status = 'active'
          ) AS has_active_foster
        FROM animals a
+       ${visibility}
        ORDER BY a.created_at DESC`
     );
     res.json(rows.map(withLegacyFields));
@@ -107,6 +118,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
+    const visibility = isModerator(req) ? '' : `AND a.current_status <> 'reported'`;
     const [[row]] = await pool.query(
       `SELECT a.*,
          (
@@ -123,7 +135,7 @@ router.get('/:id', async (req, res) => {
              AND  fp.status = 'active'
          ) AS has_active_foster
        FROM animals a
-       WHERE a.animal_id = ?`,
+       WHERE a.animal_id = ? ${visibility}`,
       [req.params.id]
     );
     res.json(withLegacyFields(row) || null);
@@ -132,9 +144,9 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Shared insert helper — used by POST / here, and reused by sightings.js
-// when a sighting report includes a brand-new (not-yet-known) animal, so the
-// "register animal + log first sighting" flow doesn't duplicate this SQL.
+// Shared insert helper (admin "Add animal"). Sighting reports no longer use
+// this — sightings.js inserts inside its own transaction and forces the
+// status to 'reported'. Kept exported so nothing that imports it breaks.
 async function insertAnimal(b, imagePath) {
   const status = b.current_status || 'reported';
   const [result] = await pool.query(
@@ -177,11 +189,9 @@ router.put('/:id', ensureAdmin, upload.single('image'), async (req, res) => {
 // DELETE is only safe once an animal has no lifecycle history — the FKs from
 // sightings / medical_records / foster_placements / adoption_requests to
 // animals are all ON DELETE RESTRICT, so MySQL itself refuses the delete at
-// the storage-engine level if any related rows exist. We don't try to force
-// it (no cascading, no pre-emptive cleanup of history) — we just catch the
-// FK violation and turn it into a clear, actionable message instead of a
-// raw 500 / stack trace. Archiving via current_status is the intended path
-// for animals with history, per the frozen schema notes.
+// the storage-engine level if any related rows exist. We just catch the FK
+// violation and turn it into a clear message. Archiving via current_status is
+// the intended path for animals with history.
 router.delete('/:id', ensureAdmin, async (req, res) => {
   try {
     const [result] = await pool.query(`DELETE FROM animals WHERE animal_id = ?`, [req.params.id]);
