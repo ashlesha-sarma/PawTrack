@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import API from '../api/api';
 
+const FIELD =
+  'w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#3395ff] focus:outline-none focus:ring-2 focus:ring-[#3395ff]/40';
+
 // Simulated Razorpay-style checkout popup. No real money moves.
 // Test values: card 4111 1111 1111 1111 = success, 4000 0000 0000 0002 = failure
 //              UPI  success@razorpay = success,    failure@razorpay = failure
@@ -38,7 +41,7 @@ export default function MockCheckout({ order, drive, user, onPaid, onCancel }) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-2xl">
+      <div className="w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-2xl" style={{ colorScheme: 'light' }}>
         <div className="bg-[#072654] p-5 text-white">
           <p className="text-xs opacity-70">PawTrack · Test Mode</p>
           <p className="mt-1 truncate text-sm">{drive.title}</p>
@@ -54,7 +57,8 @@ export default function MockCheckout({ order, drive, user, onPaid, onCancel }) {
 
           {tab === 'upi' ? (
             <input
-              className="w-full rounded-lg border p-3 text-sm"
+              className={FIELD}
+              autoComplete="off"
               value={upi}
               onChange={(e) => setUpi(e.target.value)}
               placeholder="name@upi"
@@ -62,20 +66,23 @@ export default function MockCheckout({ order, drive, user, onPaid, onCancel }) {
           ) : (
             <div className="space-y-2">
               <input
-                className="w-full rounded-lg border p-3 text-sm"
+                className={FIELD}
+                autoComplete="off"
                 value={card.number}
                 onChange={(e) => setCard({ ...card, number: e.target.value })}
                 placeholder="Card number"
               />
               <div className="flex gap-2">
                 <input
-                  className="w-1/2 rounded-lg border p-3 text-sm"
+                  className={`${FIELD.replace('w-full', 'w-1/2')}`}
+                  autoComplete="off"
                   value={card.expiry}
                   onChange={(e) => setCard({ ...card, expiry: e.target.value })}
                   placeholder="MM/YY"
                 />
                 <input
-                  className="w-1/2 rounded-lg border p-3 text-sm"
+                  className={`${FIELD.replace('w-full', 'w-1/2')}`}
+                  autoComplete="off"
                   value={card.cvv}
                   onChange={(e) => setCard({ ...card, cvv: e.target.value })}
                   placeholder="CVV"
